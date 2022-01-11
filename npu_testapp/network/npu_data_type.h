@@ -2,7 +2,7 @@
 #ifndef __NPU_DATA_TYPE_H__
 #define __NPU_DATA_TYPE_H__
 /*
-    This is generated at 2020-11-23 16:08:02.437505
+    Openedges NPU data type
 */
 
 #include <stdio.h>

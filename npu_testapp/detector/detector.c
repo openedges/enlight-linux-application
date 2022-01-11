@@ -1,123 +1,22 @@
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include "exp_tables.h"
-
-#ifdef TEST_ON_EMBEDDED_LINUX
-#define SUPPORT_MALLOC
-#endif
-
-#ifdef TEST_ON_BARE
-
-#endif
-
-
-#ifndef TEST_ON_EMBEDDED_LINUX
-extern int _printf(const char *format, ...);
-#   define enlight_log(...)  do { _printf(__VA_ARGS__); } while(0)
-#else
-#   define enlight_log(...)  do { printf(__VA_ARGS__); } while(0)
-#endif
-
-#ifndef NULL
-#define NULL 0
-#endif
-
-#define TENSOR_BUF_STRIDE 32
-
-#define MIN(A, B) (((A)>(B))?(B):(A))
-#define MAX(A, B) (((A)>(B))?(A):(B))
+#include "detector.h"
 
 #define MALLOC_UNIT (2*256*1024)
-#define MALLOC_NUM (8)
+#define MALLOC_NUM (16)
 
 #ifndef SUPPORT_MALLOC
-//uint8_t malloc_buf[MALLOC_NUM*(MALLOC_UNIT+4)];
-uint8_t* malloc_buf;
-int malloc_buf_used[MALLOC_NUM];
+    uint8_t* malloc_buf;
+    int malloc_buf_used[MALLOC_NUM];
 #endif
 
-typedef struct
+#ifndef SUPPORT_MALLOC
+void enlight_init_mem(void *buf)
 {
-    int16_t x_min;
-    int16_t x_max;
-    int16_t y_min;
-    int16_t y_max;
-    int16_t class;
-    int16_t score;
-} obj_t;
-
-typedef struct
-{
-    int cnt;
-    obj_t obj[256];
-} objs_t;
-
-objs_t objects;
-
-enum {
-    TYPE_UINT8,
-    TYPE_INT8,
-    TYPE_UINT16,
-    TYPE_INT16,
-    TYPE_FLOAT
-};
-
-typedef struct
-{
-    void* buf;
-
-    int log2_scale;
-
-    int data_type;
-    int num_element;
-    int num_dimension;
-
-    int dimensions[4];
-
-    // optional table, ex: table[qvalue] = exp(qvalue)
-    void* table;
-} tensor_t;
-
-typedef struct
-{
-    int16_t x_min;
-    int16_t x_max;
-    int16_t y_min;
-    int16_t y_max;
-} box_t;
-
-typedef struct
-{
-    box_t* box;
-
-    uint8_t* class;
-    uint8_t* score;
-
-    int n;
-} detection_t;
-
-typedef detection_t candidate_t;
-
-typedef struct
-{
-    float x_min;
-    float x_max;
-    float y_min;
-    float y_max;
-} box_f_t;
-
-typedef struct
-{
-    box_f_t* box;
-
-    uint8_t* class;
-    float* score;
-
-    int n;
-} detection_f_t;
-
-typedef detection_f_t candidate_f_t;
+    int i;
+    malloc_buf = (uint8_t*)buf;
+    for (i = 0 ; i < MALLOC_NUM ; i++)
+        malloc_buf_used[i] = 0;
+}
+#endif
 
 uint8_t* enlight_malloc(int size)
 {
@@ -127,10 +26,8 @@ uint8_t* enlight_malloc(int size)
     int* ptr;
     int i;
 
-    for (i = 0 ; i < MALLOC_NUM ; i++)
-    {
-        if (!malloc_buf_used[i])
-        {
+    for (i = 0 ; i < MALLOC_NUM ; i++) {
+        if (!malloc_buf_used[i]) {
             malloc_buf_used[i] = 1;
 
             ptr = (int*)(malloc_buf + i*(MALLOC_UNIT+8));
@@ -142,7 +39,6 @@ uint8_t* enlight_malloc(int size)
     }
 
     enlight_log("malloc failed\n");
-
     return NULL;
 #endif
 }
@@ -157,10 +53,9 @@ void enlight_free(uint8_t* buf)
 #endif
 }
 
-int get_data_size(int data_type)
+static int get_data_size(int dtype)
 {
-    switch (data_type)
-    {
+    switch (dtype) {
         case TYPE_UINT8:
         case TYPE_INT8:
             return 1;
@@ -174,7 +69,7 @@ int get_data_size(int data_type)
     }
 }
 
-void swap(int* l, int* r)
+static void swap(int* l, int* r)
 {
     int tmp;
 
@@ -183,30 +78,30 @@ void swap(int* l, int* r)
     *r = tmp;
 }
 
-tensor_t* alloc_tensor(int data_type, int num_dimension, int* dimensions, int log2_scale)
+tensor_t* alloc_tensor(int dtype, int num_dim, int* dims, int scl)
 {
     int i;
-    int num_element = 1;
+    int num_ele = 1;
 
-    for (i = 0 ; i < num_dimension ; i++)
-        num_element *= dimensions[i];
+    for (i = 0; i < num_dim; i++)
+        num_ele *= dims[i];
 
-    int unit_size = get_data_size(data_type);
-    uint8_t* buf = enlight_malloc(sizeof(tensor_t) + unit_size * num_element);
+    int unit_size = get_data_size(dtype);
+    uint8_t* buf = enlight_malloc(sizeof(tensor_t) + unit_size * num_ele);
 
     tensor_t* tensor = (tensor_t*)buf;
     tensor->buf = (uint8_t*)(buf + sizeof(tensor_t));
 
-    tensor->log2_scale = log2_scale;
-    tensor->data_type = data_type;
-    tensor->num_element = num_element;
-    tensor->num_dimension = num_dimension;
+    tensor->scl = scl;
+    tensor->dtype = dtype;
+    tensor->num_ele = num_ele;
+    tensor->num_dim = num_dim;
 
-    for (i = 0 ; i < num_dimension ; i++)
-        tensor->dimensions[i] = dimensions[i];
+    for (i = 0 ; i < num_dim; i++)
+        tensor->dims[i] = dims[i];
 
-    tensor->table = NULL;
-
+    tensor->sig_tbl = NULL;
+    tensor->exp_tbl = NULL;
     return tensor;
 }
 
@@ -214,9 +109,6 @@ void free_tensor(tensor_t* tensor)
 {
     enlight_free((uint8_t*)tensor);
 }
-
-#define alloc_candidate(max_candidate) alloc_detection(max_candidate)
-#define free_candidate(candidate) free_detection(candidate)
 
 detection_t* alloc_detection(int max_detection)
 {
@@ -252,24 +144,7 @@ void free_detection(detection_t* detection)
     enlight_free((uint8_t*)detection);
 }
 
-void init_detections(detection_t* d, int n, box_t* box, uint8_t* class, uint8_t* score)
-{
-    d->box = box;
-    d->class = class;
-    d->score = score;
-
-    d->n = n;
-}
-
-void copy_box(box_t* dst, box_t* src)
-{
-    dst->x_min = src->x_min;
-    dst->x_max = src->x_max;
-    dst->y_min = src->y_min;
-    dst->y_max = src->y_max;
-}
-
-void copy_box_f(box_f_t* dst, box_f_t* src)
+static void copy_box(box_t* dst, box_t* src)
 {
     dst->x_min = src->x_min;
     dst->x_max = src->x_max;
@@ -279,156 +154,55 @@ void copy_box_f(box_f_t* dst, box_f_t* src)
 
 void copy_tensor_info(tensor_t* dst, tensor_t* src)
 {
-    dst->log2_scale = src->log2_scale;
-    dst->data_type = src->data_type;
+    dst->scl = src->scl;
+    dst->dtype = src->dtype;
 
-    dst->num_element = src->num_element;
-    dst->num_dimension = src->num_dimension;
+    dst->num_ele = src->num_ele;
+    dst->num_dim = src->num_dim;
 
-    dst->dimensions[0] = src->dimensions[0];
-    dst->dimensions[1] = src->dimensions[1];
-    dst->dimensions[2] = src->dimensions[2];
-    dst->dimensions[3] = src->dimensions[3];
+    dst->dims[0] = src->dims[0];
+    dst->dims[1] = src->dims[1];
+    dst->dims[2] = src->dims[2];
+    dst->dims[3] = src->dims[3];
 }
 
-tensor_t* softmax(tensor_t* src)
+#define MAX_CLASS_NUM 1024
+void softmax(tensor_t* src, tensor_t* dst, int stride)
 {
-    tensor_t* dst = alloc_tensor(TYPE_UINT8, src->num_dimension, src->dimensions, 0);
-
-    uint32_t e, sum, _sum;
-    int class;
+    int i, c;
+    uint64_t  _sum;
+    uint32_t e, sum, e_array[MAX_CLASS_NUM];
 
     // batches, num_boxes, num_classes
-    int num_box = src->dimensions[1];
-    int num_class = src->dimensions[2];
+    int num_box = src->dims[1];
+    int num_class = src->dims[2];
 
-    int8_t* next;
-    int8_t* last = src->buf + (num_box * TENSOR_BUF_STRIDE) - TENSOR_BUF_STRIDE;
-
+    int8_t* class_conf = src->buf;
+    uint32_t* exp_tbl = (uint32_t*)src->exp_tbl;
     uint8_t* conf = (uint8_t*)dst->buf;
-    uint32_t* table = (uint32_t*)src->table + 128;
-    uint32_t exp_look_up[100];
 
-    for (next = src->buf ; next <= last ; next += TENSOR_BUF_STRIDE)
-    {
-        sum = 0.;
+    if (num_class > MAX_CLASS_NUM) {
+        enlight_log("error: num_class > %d\n", MAX_CLASS_NUM);
+    }
 
-        for (class = 0 ; class < num_class ; class++)
-        {
-            e = table[next[class]];
-            exp_look_up[class] = e;
+    for (i = 0 ; i < num_box; i++) {
+        sum = 0;
+
+        for (c = 0 ; c < num_class ; c++) {
+            e = exp_tbl[class_conf[c]];
+            e_array[c] = e;
             sum += e;
         }
 
-        _sum = (1<<31) / sum;
-        for (class = 0 ; class < num_class ; class++)
-        {
-            uint64_t e_ = (uint64_t)exp_look_up[class];
-            *conf++ = (uint8_t)MIN(((e_ * _sum) >> (31 - 8)), 255);
+        _sum = (1ULL<<36) / sum;
+        for (c = 0 ; c < num_class ; c++) {
+            uint64_t e_ = (uint64_t)e_array[c];
+            *conf++ = (uint8_t)MIN(((e_ * _sum) >> (36 - 8)), 255);
         }
+        class_conf += stride;
     }
-
-    return dst;
 }
 
-void build_box_info(box_t* box, tensor_t* loc, tensor_t* prior, int idx)
-{
-    int loc_idx = idx * TENSOR_BUF_STRIDE;
-    int box_idx = idx << 2;
-
-    int8_t* _loc = (int8_t*)loc->buf + loc_idx;
-    uint8_t* _prior = (uint8_t*)prior->buf + box_idx;
-
-    uint32_t* table = (uint32_t*)loc->table;
-
-    int x, y, w, h, x_center, y_center, x_offset, y_offset;
-
-    const int S_cal = 8;
-    const int S_tbl = 8;
-    int l2s;
-
-    // w, h scale
-    // S_w = S_prior * S_tbl
-    // S_h = S_prior * S_tbl
-    w = (int)_prior[2] * table[_loc[2]+128];
-    h = (int)_prior[3] * table[_loc[3]+128];
-
-    l2s = (prior->log2_scale + S_tbl) - S_cal;
-    if (l2s > 0) {
-        w >>= l2s;
-        h >>= l2s;
-    }
-    else {
-        w <<= -l2s;
-        h <<= -l2s;
-    }
-
-    // x_offset, y_offset scale
-    // S_xoff = S_loc * S_prior
-    x_offset = (int)_loc[0] * (int)_prior[2];
-    y_offset = (int)_loc[1] * (int)_prior[3];
-
-    l2s = (loc->log2_scale + prior->log2_scale) - S_cal;
-    if (l2s > 0) {
-        x_offset >>= l2s;
-        y_offset >>= l2s;
-    }
-    else {
-        x_offset <<= -l2s;
-        y_offset <<= -l2s;
-    }
-
-    l2s = (prior->log2_scale) - S_cal;
-    if (l2s > 0) {
-        x_center = _prior[0] >> l2s;
-        y_center = _prior[1] >> l2s;
-    }
-    else {
-        x_center = _prior[0] << (-l2s);
-        y_center = _prior[1] << (-l2s);
-    }
-
-    x = x_center - w / 2 + x_offset;
-    y = y_center - h / 2 + y_offset;
-
-    box->x_min = x;
-    box->x_max = x + w;
-    box->y_min = y;
-    box->y_max = y + h;
-}
-
-// input: { batch, boxes, classes }
-// output: { boxes { coordinate, score } }
-candidate_t* thresholding(tensor_t* score, tensor_t* loc, tensor_t* prior,
-                          int class, uint8_t th)
-{
-    uint8_t* _score = score->buf + class;
-
-    int num_box = score->dimensions[1];
-    int num_class = score->dimensions[2];
-
-    int box, n;
-    int prior_offset;
-
-    candidate_t* candidate = (candidate_t*)alloc_candidate(num_box);
-
-    for (box = 0, n = 0 ; box < num_box ; box++, _score += num_class)
-    {
-        if (*_score >= th)
-        {
-            build_box_info(&candidate->box[n], loc, prior, box);
-
-            candidate->class[n] = class;
-            candidate->score[n] = *_score;
-
-            n++;
-        }
-    }
-
-    candidate->n = n;
-
-    return candidate;
-}
 
 int iou(box_t* l, box_t* r)
 {
@@ -465,70 +239,51 @@ int iou(box_t* l, box_t* r)
         return 255 * area_inter / area_union;
 }
 
-void nms(detection_t* detection, candidate_t* candidate, int class, uint8_t th)
+
+void nms(detection_t* detection, cand_t* cand, int class, uint8_t th)
 {
-    int* indice = (int*)enlight_malloc(sizeof(int)*candidate->n);
+    int i, j, score, n = detection->n;
+    int num_cand = cand->n;
+    int ref_index, test_index;
 
-    int* head;
-    int* next;
-    int* last;
+    int* indice    = (int*)enlight_malloc(sizeof(int)*num_cand);
+    char* deleted  = (char*)enlight_malloc(sizeof(char)*num_cand);
 
-    int* argmax;
+    box_t* cand_box = cand->box;
+    uint8_t* cand_score = cand->score;
 
-    int max, score;
+    box_t* detection_box = detection->box;
+    uint8_t* detection_class = detection->class;
+    uint8_t* detection_score = detection->score;
 
-    box_t* _src_box = candidate->box;
-    uint8_t* _src_score = candidate->score;
+    for (i = 0 ; i < num_cand ; i++){
+        indice[i]   = i;
+        deleted[i]  = 0;
+    }
 
-    int i, n = detection->n;
-    int num_candidate = candidate->n;
+    intro_sort(cand_score, indice, num_cand);
 
-    box_t* _dst_box = detection->box;
-    uint8_t* _dst_class = detection->class;
-    uint8_t* _dst_score = detection->score;
+    //indices are sorted ascending order
+    for (i = num_cand - 1; i >=0; i--) {
+        ref_index = indice[i];
+        if (!deleted[i]) {
+            score = cand_score[ref_index];
 
-    for (i = 0 ; i < num_candidate ; i++)
-        indice[i] = i;
+            // add detection result
+            copy_box(&detection_box[n], &cand_box[ref_index]);
+            detection_class[n] = class;
+            detection_score[n] = score;
 
-    // non-maximum surpression
-    last = indice + num_candidate - 1;
-
-    for (head = indice ; head <= last ; head++)
-    {
-        // arg max(score)
-        argmax = head;
-        max = _src_score[*head];
-        for (next = head + 1 ; next <= last ; next++)
-        {
-            score = _src_score[*next];
-
-            if (score > max)
-            {
-                argmax = next;
-                max = score;
-            }
+            deleted[i] = 1;
+            n++;
         }
 
-        // swap
-        swap(head, argmax);
-
-        // add detection result
-        copy_box(&_dst_box[n], &_src_box[*head]);
-
-        _dst_class[n] = class;
-        _dst_score[n] = max;
-
-        n++;
-
         // non-maximum surpression
-        for (next = head + 1; next <= last ; next++)
-        {
-            if (iou(&_src_box[*head], &_src_box[*next]) >= th)
-            {
-                swap(last, next);
-
-                last--;
-                next--;
+        for (j = i - 1; j >= 0; j--) {
+            test_index = indice[j];
+            if (!deleted[j]) {
+                if (iou(&cand_box[ref_index], &cand_box[test_index]) >= th)
+                    deleted[j] = 1;
             }
         }
     }
@@ -536,212 +291,188 @@ void nms(detection_t* detection, candidate_t* candidate, int class, uint8_t th)
     detection->n = n;
 
     enlight_free((uint8_t*)indice);
+    enlight_free((uint8_t*)deleted);
 }
 
-detection_t* post_process(tensor_t* score, tensor_t* loc, tensor_t* prior,
-                          uint8_t th_conf, uint8_t th_nms)
+
+void sigmoid(tensor_t *src, tensor_t *dst, int stride)
 {
-    detection_t* detection = alloc_detection(score->num_element);
+    int i, c;
 
-    // batches, boxes, classes
-    int num_class = score->dimensions[2];
-    int class;
+    // batches, num_boxes, num_classes
+    int num_box = src->dims[1];
+    int num_class = src->dims[2];
 
-    tensor_t* confidence;
-    candidate_t* candidate;
+    int8_t* class_conf = src->buf;
+    uint8_t* sig_tbl = (uint8_t*)src->sig_tbl;
+    uint8_t* conf = (uint8_t*)dst->buf;
 
-    // order of dimension is { batch, default_box, scores }
-    confidence = softmax(score);
-
-    for (class = 1 ; class < num_class ; class++)
-    {
-        candidate = thresholding(confidence, loc, prior, class, th_conf);
-
-        nms(detection, candidate, class, th_nms);
-
-        free_candidate(candidate);
+    if (num_class > MAX_CLASS_NUM) {
+        enlight_log("error: num_class > %d\n", MAX_CLASS_NUM);
     }
 
-    free_tensor(confidence);
-
-    return detection;
+    for (i = 0 ; i < num_box; i++) {
+        for (c = 0 ; c < num_class ; c++) {
+            *conf++ = sig_tbl[class_conf[c]];
+        }
+        class_conf += stride;
+    }
 }
 
-int detector(void* prior_buf, void* loc_buf, void* score_buf,
-             int log2_prior_scl, int log2_loc_scl, int log2_score_scl,
-             int num_class, int th_conf, int th_iou, int num_box)
+
+void heap_sort(const uint8_t* unsorted, int* indices, int N)
 {
+    N = N - 1;
 
-    volatile unsigned long cycle0_h;
-    volatile unsigned long cycle1_h;
+    int tree_index, parent, child;
+    int temp_data, temp_index;
 
-    volatile unsigned long cycle0;
-    volatile unsigned long cycle1;
-
-    unsigned long hz;
-
-    tensor_t score;
-    tensor_t loc;
-    tensor_t prior;
-
-    int i;
-
-#ifndef SUPPORT_MALLOC
-    for (i = 0 ; i < MALLOC_NUM ; i++)
-        malloc_buf_used[i] = 0;
-#endif
-
-    prior.buf = prior_buf;
-    prior.log2_scale = log2_prior_scl;
-    prior.data_type = TYPE_UINT8;
-    prior.num_element = num_box*4;
-    prior.num_dimension = 2;
-    prior.dimensions[0] = num_box;
-    prior.dimensions[1] = 4;
-    prior.table = NULL;
-
-    loc.buf = loc_buf;
-    loc.log2_scale = log2_loc_scl;
-    loc.data_type = TYPE_INT8;
-    loc.num_element = 1*num_box*4;
-    loc.num_dimension = 3;
-    loc.dimensions[0] = 1;
-    loc.dimensions[1] = num_box;
-    loc.dimensions[2] = 4;
-    loc.table = exp_tables[8 + log2_loc_scl];
-
-    score.buf = score_buf;
-    score.log2_scale = log2_score_scl;
-    score.data_type = TYPE_INT8;
-    score.num_element = 1*num_box*num_class;
-    score.num_dimension = 3;
-    score.dimensions[0] = 1;
-    score.dimensions[1] = num_box;
-    score.dimensions[2] = num_class;
-    score.table = exp_tables[8 + log2_score_scl];
-
-    if ((log2_score_scl < -7) || (log2_score_scl > 15)) {
-        enlight_log("exp_tables is not ready for log2_score_scl {%d}\n", log2_score_scl);
+    for (tree_index = (N - 1) >> 1; tree_index >= 0; tree_index--) {
+        temp_index = indices[tree_index];
+        temp_data = unsorted[temp_index];
+        
+        for (parent = tree_index, child = (tree_index << 1) + 1; child <= N;) {
+            if (child < N) {
+                if (unsorted[indices[child]] < unsorted[indices[child + 1]])
+                    child++;
+            }
+            if (temp_data < unsorted[indices[child]]) {
+                indices[parent] = indices[child];
+                parent = child;
+                child += (child + 1);
+            }
+            else
+                break;
+        }
+        indices[parent] = temp_index;
     }
 
-    if ((log2_loc_scl < -7) || (log2_loc_scl > 15)) {
-        enlight_log("exp_tables is not ready for log2_loc_scl {%d}\n", log2_loc_scl);
+    do {
+        temp_index = indices[N];
+        temp_data = unsorted[temp_index];
+        indices[N] = indices[0];
+        N--;
+        for (parent = 0, child = 1; child <= N;) {
+            if (child < N) {
+                if (unsorted[indices[child]] < unsorted[indices[child + 1]])
+                    child++;
+            }
+            if (temp_data < unsorted[indices[child]]) {
+                indices[parent] = indices[child];
+                parent = child;
+                child += (child + 1);
+            }
+            else
+                break;
+        }
+        indices[parent] = temp_index;
+    } while (N > 0);
+}
+
+
+void insertion_sort(const uint8_t* unsorted, int* indices, int N)
+{
+    int i, j;
+    int ref_data, ref_idx, test_data, test_idx;
+
+    for (i = 1; i < N; i++) {
+        ref_idx = indices[i];
+        ref_data = unsorted[ref_idx];
+
+        for (j = i - 1; j >= 0; j--) {
+            test_idx = indices[j];
+            test_data = unsorted[test_idx];
+            if (ref_data < test_data)
+                indices[j + 1] = indices[j];
+            else
+                break;
+        }
+        indices[j + 1] = ref_idx;
     }
 
-#ifdef DETECTOR_DEBUG
-    enlight_log(" prior.log2_scale   %08x\n",     prior.log2_scale);
-    enlight_log(" prior.data_type    %08x\n",     prior.data_type);
-    enlight_log(" prior.num_element  %08x\n",     prior.num_element);
-    enlight_log(" prior.num_dimension%08x\n",     prior.num_dimension);
-    enlight_log(" prior.dimensions[0]%08x\n",     prior.dimensions[0]);
-    enlight_log(" prior.dimensions[1]%08x\n",     prior.dimensions[1]);
-    enlight_log(" prior.table        %08x\n",     prior.table);
-    enlight_log("                    %08x\n",     0);
-    enlight_log(" loc.buf            %08x\n",     loc.buf );
-    enlight_log(" loc.log2_scale     %08x\n",     loc.log2_scale);
-    enlight_log(" loc.data_type      %08x\n",     loc.data_type);
-    enlight_log(" loc.num_element    %08x\n",     loc.num_element);
-    enlight_log(" loc.num_dimension  %08x\n",     loc.num_dimension);
-    enlight_log(" loc.dimensions[0]  %08x\n",     loc.dimensions[0]);
-    enlight_log(" loc.dimensions[1]  %08x\n",     loc.dimensions[1]);
-    enlight_log(" loc.dimensions[2]  %08x\n",     loc.dimensions[2]);
-    enlight_log(" loc.table          %08x\n",     loc.table);
-    enlight_log("                    %08x\n",     0);
-    enlight_log(" score.buf          %08x\n",     score.buf);
-    enlight_log(" score.log2_scale   %08x\n",     score.log2_scale);
-    enlight_log(" score.data_type    %08x\n",     score.data_type);
-    enlight_log(" score.num_element  %08x\n",     score.num_element);
-    enlight_log(" score.num_dimension%08x\n",     score.num_dimension);
-    enlight_log(" score.dimensions[0]%08x\n",     score.dimensions[0]);
-    enlight_log(" score.dimensions[1]%08x\n",     score.dimensions[1]);
-    enlight_log(" score.dimensions[2]%08x\n",     score.dimensions[2]);
-    enlight_log(" score.table        %08x\n",     score.table);
-#endif
+}
 
-    enlight_log("Postproc start\n");
-    hz = 600 * 1000;
-    asm volatile ("rdcycle %0" : "=r" (cycle0));
+int get_depth(int num_ele)
+{
+    int depth_limit = 0;
+    while (num_ele > 0) {
+        num_ele >>= 1;
+        depth_limit++;
+    }
+    return depth_limit;
+}
+void intro_sort(const uint8_t* unsorted, int* indices, int N)
+{
+    if(N == 0)
+        return;
 
-    detection_t* r1 = post_process(&score, &loc, &prior, th_conf, th_iou);
+    int pivot;
 
-    asm volatile ("rdcycle %0" : "=r" (cycle1));
-
-    enlight_log("%d object is detected\n", r1->n);
-
-    enlight_log("[Postproc cycles] %ld \n", cycle1 - cycle0);
-    //enlight_log("%ld ms taken\n", (cycle1 - cycle0) / hz);
+    int *i, *j, *left, *middle, *right;
+        
+    int *indices_stack[MAX_STACK_SIZE];
+    int    depth_stack[MAX_STACK_SIZE];
     
-    objects.cnt=0;
+    int indices_top = -1;
+    int depth_top = -1;
+    int depth_limit = get_depth(N) * 2;
 
-    for (i = 0 ; i < r1->n ; i++)
-    {
-        box_t* b = r1->box + i;
+    indices_stack[++indices_top] = indices;
+    indices_stack[++indices_top] = indices + N - 1;
+    depth_stack[++depth_top] = depth_limit;
 
-        enlight_log("x_min: %d, x_max: %d, y_min: %d, y_max: %d, score: %d, class: %d\n", 
-                300*b->x_min/256,
-                300*b->x_max/256,
-                300*b->y_min/256,
-                300*b->y_max/256,
-                ((int)r1->score[i])*100/256,
-                r1->class[i]);
+    while (indices_top > 0) {
+        right       = indices_stack[indices_top--];
+        left        = indices_stack[indices_top--];
+        depth_limit = depth_stack[depth_top--];
 
+        //Heap sort if recursion would be deeper
+        if (depth_limit < 0)
+            heap_sort(unsorted, left, right - left + 1);
+        else {
+        //Quick sort if size is more than insertion sort available size
+            while (right - left > INSERTION_SORT_SIZE) {
+                // three median quick sort
+                middle = left + ((right - left) >> 1);
+                if (unsorted[*middle] < unsorted[*left])
+                    swap(middle, left);
+                if (unsorted[*right] < unsorted[*middle])
+                    swap(right, middle);
+                if (unsorted[*middle] < unsorted[*left])
+                    swap(middle, left);
 
-        obj_t *detect_obj = &objects.obj[objects.cnt];
-        detect_obj->x_min = 300*b->x_min/256;
-        detect_obj->x_max = 300*b->x_max/256;
-        detect_obj->y_min = 300*b->y_min/256;
-        detect_obj->y_max = 300*b->y_max/256;
-        detect_obj->class = r1->score[i];
-        detect_obj->score = r1->class[i];
-        objects.cnt++;
+                pivot = unsorted[*middle];
+                i = left;
+                j = right - 1;
+                swap(middle, j);
+                do {
+                    do {
+                        i++;
+                    } while (i < j && pivot > unsorted[*i]);
+                    do {
+                        j--;
+                    } while (j > i && pivot < unsorted[*j]);
+                    if (i >= j)
+                        break;
+                    swap(i, j);
+                } while (1);
+                swap(i, right - 1);
 
+                if (i - left < right - i) {
+                    indices_stack[++indices_top] = i + 1;
+                    indices_stack[++indices_top] = right;
+                    right = i - 1;
+                }
+                else {
+                    indices_stack[++indices_top] = left;
+                    indices_stack[++indices_top] = i - 1;
+                    left = i + 1;
+                }
+                depth_stack[++depth_top] = --depth_limit;               
+            }
+        //else do insertion sort
+            insertion_sort(unsorted, left, right - left + 1);
+        }
     }
-
-#ifndef TEST_ON_EMBEDDED_LINUX
-    return 0;
-#else
-    return &objects;
-#endif
 }
 
-void detector_init(void *work_buf)
-{ 
-    objects.cnt=0;
-#ifndef SUPPORT_MALLOC
-    malloc_buf = (uint8_t*)work_buf;
-#endif
-}
-
-#ifndef TEST_ON_EMBEDDED_LINUX
-void detector_run(
-    uint8_t *prior_box,
-    uint8_t *loc_buf_32,
-    uint8_t *score_buf_32,
-    int log2_prior_scl,
-    int log2_loc_scl,
-    int log2_score_scl,
-    int num_class, int stages, int *grids, int* vars,
-    int th_conf, int th_iou, int num_box)
-#else
-objs_t* detector_run(
-    uint8_t *prior_box,
-    uint8_t *loc_buf_32,
-    uint8_t *score_buf_32,
-    int log2_prior_scl,
-    int log2_loc_scl,
-    int log2_score_scl,
-    int num_class, int stages, int *grids, int* vars,
-    int th_conf, int th_iou, int num_box)
-#endif
-{
-
-#ifndef TEST_ON_EMBEDDED_LINUX
-    detector(prior_box, loc_buf_32, score_buf_32,
-             log2_prior_scl, log2_loc_scl, log2_score_scl,
-             num_class, (uint8_t)th_conf, (uint8_t)th_iou, num_box);
-#else
-    return detector(prior_box, loc_buf_32, score_buf_32,
-             log2_prior_scl, log2_loc_scl, log2_score_scl,
-             num_class, (uint8_t)th_conf, (uint8_t)th_iou, num_box);
-#endif
-}

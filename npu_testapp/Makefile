@@ -19,6 +19,7 @@ CFLAGS	+= -pg
 OBJS = testapp.o
 OBJS += network/post_process.o
 OBJS += detector/detector.o detector/classifier.o
+OBJS += detector/ssd_detector.o detector/yolo_detector.o
 
 
 TARGET = testapp

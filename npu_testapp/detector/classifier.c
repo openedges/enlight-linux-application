@@ -10,7 +10,7 @@ extern int _printf(const char *format, ...);
 #endif
 
 
-int classifier_run(void *oact_base, int log2_oact_scl, int num_class)
+int classifier_run(uint8_t *oact_base, int log2_oact_scl, int num_class)
 {
 
     int i, max_val, max_idx;
