@@ -1,0 +1,14 @@
+#
+# TEST configuration
+#
+
+config TestDrv
+    tristate "TEST TEST"
+
+if TestDrv
+
+menu "Test drivers"
+
+endmenu
+
+endif
