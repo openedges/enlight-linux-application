@@ -2,7 +2,7 @@
 #ifndef __NPU_DATA_TYPE_H__
 #define __NPU_DATA_TYPE_H__
 /*
-    This is generated at 2020-05-07 10:23:36.431888
+    This is generated at 2020-10-21 16:23:40.459416
 */
 
 #include <stdio.h>
@@ -37,12 +37,12 @@ typedef struct {
     int  r;
     /// conv kernel width
     int  s;
-    /// 1: depth-wise conv, 0: not depth-wise conv
-    int  dw;
+    /// conv groups
+    int  groups;
 } weight_tensor_t;
 
 typedef struct {
-    /// data type of tensro
+    /// data type of tensor
     int  data_type;
     /// base address of tensor
     void *buf;

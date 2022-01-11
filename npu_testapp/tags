@@ -1,0 +1,384 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+CC	Makefile	/^CC		:= $(CROSS_COMPILE)gcc$/;"	m
+CFLAGS	Makefile	/^CFLAGS	:= -Wall -D__NO_INLINE__ -mcmodel=medany -std=gnu99$/;"	m
+CMD_FILE	testapp.c	13;"	d	file:
+CONCAT_0_FILE	testapp.c	16;"	d	file:
+CONCAT_1_FILE	testapp.c	15;"	d	file:
+CROSS_COMPILE	Makefile	/^CROSS_COMPILE = riscv64-unknown-linux-gnu-$/;"	m
+INPUT_FILE	testapp.c	12;"	d	file:
+LIBS	Makefile	/^LIBS	:= -lm$/;"	m
+MAKE_EXPTABLE	detector/detector.c	9;"	d	file:
+MALLOC_NUM	detector/detector.c	122;"	d	file:
+MALLOC_UNIT	detector/detector.c	121;"	d	file:
+MAX	detector/detector.c	119;"	d	file:
+MIN	detector/detector.c	118;"	d	file:
+NPU_H	npu.h	2;"	d
+NPU_IOCTL_MAGIC	npu.h	10;"	d
+NPU_IOCTL_MAX	npu.h	16;"	d
+NPU_IOCTL_RUN	npu.h	12;"	d
+NPU_IOCTL_SET_CMD_BUF	npu.h	13;"	d
+NPU_IOCTL_SET_WEIGHT_BUF	npu.h	14;"	d
+NULL	detector/detector.c	115;"	d	file:
+NUM_BIT	detector/detector.c	48;"	d	file:
+NUM_BOX	detector/detector.c	36;"	d	file:
+OBJS	Makefile	/^OBJS = testapp.o$/;"	m
+OUTDIR	Makefile	/^OUTDIR = output$/;"	m
+SRCDIR_DETECTOR	Makefile	/^SRCDIR_DETECTOR = detector$/;"	m
+SRCDIR_NETWORK	Makefile	/^SRCDIR_NETWORK = network$/;"	m
+SUPPORT_MALLOC	detector/detector.c	8;"	d	file:
+TARGET	Makefile	/^TARGET = testapp$/;"	m
+TH_CONF	detector/detector.c	46;"	d	file:
+TH_IOU	detector/detector.c	42;"	d	file:
+TYPE_FLOAT	detector/detector.c	/^    TYPE_FLOAT$/;"	e	enum:__anon1	file:
+TYPE_FP16	network/npu_data_type.h	/^    TYPE_FP16, TYPE_FP32$/;"	e	enum:__anon7
+TYPE_FP32	network/npu_data_type.h	/^    TYPE_FP16, TYPE_FP32$/;"	e	enum:__anon7
+TYPE_INT16	detector/detector.c	/^    TYPE_INT16,$/;"	e	enum:__anon1	file:
+TYPE_INT16	network/npu_data_type.h	/^    TYPE_UINT16, TYPE_INT16,$/;"	e	enum:__anon7
+TYPE_INT4	network/npu_data_type.h	/^    TYPE_UINT4, TYPE_INT4,$/;"	e	enum:__anon7
+TYPE_INT8	detector/detector.c	/^    TYPE_INT8,$/;"	e	enum:__anon1	file:
+TYPE_INT8	network/npu_data_type.h	/^    TYPE_UINT8, TYPE_INT8,$/;"	e	enum:__anon7
+TYPE_UINT16	detector/detector.c	/^    TYPE_UINT16,$/;"	e	enum:__anon1	file:
+TYPE_UINT16	network/npu_data_type.h	/^    TYPE_UINT16, TYPE_INT16,$/;"	e	enum:__anon7
+TYPE_UINT4	network/npu_data_type.h	/^    TYPE_UINT4, TYPE_INT4,$/;"	e	enum:__anon7
+TYPE_UINT8	detector/detector.c	/^    TYPE_UINT8,$/;"	e	enum:__anon1	file:
+TYPE_UINT8	network/npu_data_type.h	/^    TYPE_UINT8, TYPE_INT8,$/;"	e	enum:__anon7
+VAR0	detector/detector.c	608;"	d	file:
+VAR1	detector/detector.c	609;"	d	file:
+VAR2	detector/detector.c	610;"	d	file:
+VAR3	detector/detector.c	611;"	d	file:
+WEIGHT_FILE	testapp.c	14;"	d	file:
+__EXP_TABLES_H__	detector/exp_tables.h	2;"	d
+__NPU_CMD_H__	network/npu_cmd.h	3;"	d
+__NPU_DATA_TYPE_H__	network/npu_data_type.h	3;"	d
+__PRIOR_BOX_H__	detector/prior_box.h	2;"	d
+__PRIOR_BOX_H__	network/quantized_prior_box.h	2;"	d
+__QUANTIZED_NETWORK_H__	network/quantized_network.h	3;"	d
+__QUANTIZED_NETWORK_OACT_H__	network/quantized_network_oact.h	3;"	d
+__i386__	detector/detector.c	25;"	d	file:
+__i86__	detector/detector.c	28;"	d	file:
+act_tensor_t	network/npu_data_type.h	/^} act_tensor_t;$/;"	t	typeref:struct:__anon9
+alloc_candidate	detector/detector.c	223;"	d	file:
+alloc_detection	detector/detector.c	/^detection_t* alloc_detection(int max_detection)$/;"	f
+alloc_tensor	detector/detector.c	/^tensor_t* alloc_tensor(int data_type, int num_dimension, int* dimensions, int log2_scale)$/;"	f
+arrange_tensor	detector/detector.c	/^void arrange_tensor(uint8_t* src, uint8_t* dst, int num_ch) $/;"	f
+bbuf	network/npu_data_type.h	/^    void *bbuf;$/;"	m	struct:__anon8
+bfb	network/npu_data_type.h	/^    int  bfb;$/;"	m	struct:__anon8
+box	detector/detector.c	/^    box_f_t* box;$/;"	m	struct:__anon6	file:
+box	detector/detector.c	/^    box_t* box;$/;"	m	struct:__anon4	file:
+box_f_t	detector/detector.c	/^} box_f_t;$/;"	t	typeref:struct:__anon5	file:
+box_t	detector/detector.c	/^} box_t;$/;"	t	typeref:struct:__anon3	file:
+bsize	network/npu_data_type.h	/^    int  bsize;$/;"	m	struct:__anon8
+buf	detector/detector.c	/^    void* buf;$/;"	m	struct:__anon2	file:
+buf	network/npu_data_type.h	/^    void *buf;$/;"	m	struct:__anon9
+buffer	npu.h	/^    char *buffer;$/;"	m	struct:npu_buf_info
+buffer	testapp.c	/^    void *buffer;$/;"	m	struct:npu_buffer_info	file:
+build_box_info	detector/detector.c	/^void build_box_info(box_t* box, tensor_t* loc, tensor_t* prior, int idx)$/;"	f
+build_exp_tables	detector/detector.c	/^uint32_t (*build_exp_tables())[256]$/;"	f
+candidate_f_t	detector/detector.c	/^typedef detection_f_t candidate_f_t;$/;"	t	file:
+candidate_t	detector/detector.c	/^typedef detection_t candidate_t;$/;"	t	file:
+class	detector/detector.c	/^    uint8_t* class;$/;"	m	struct:__anon4	file:
+class	detector/detector.c	/^    uint8_t* class;$/;"	m	struct:__anon6	file:
+copy_box	detector/detector.c	/^void copy_box(box_t* dst, box_t* src)$/;"	f
+copy_box_f	detector/detector.c	/^void copy_box_f(box_f_t* dst, box_f_t* src)$/;"	f
+copy_tensor_info	detector/detector.c	/^void copy_tensor_info(tensor_t* dst, tensor_t* src)$/;"	f
+data_type	detector/detector.c	/^    int data_type;$/;"	m	struct:__anon2	file:
+data_type	network/npu_data_type.h	/^    int  data_type;$/;"	m	struct:__anon8
+data_type	network/npu_data_type.h	/^    int  data_type;$/;"	m	struct:__anon9
+detection_f_t	detector/detector.c	/^} detection_f_t;$/;"	t	typeref:struct:__anon6	file:
+detection_t	detector/detector.c	/^} detection_t;$/;"	t	typeref:struct:__anon4	file:
+detector	detector/detector.c	/^int detector(void* prior_buf, void* loc_buf, void* score_buf,$/;"	f
+detector_init	detector/detector.c	/^void detector_init(void *work_buf)$/;"	f
+detector_run	detector/detector.c	/^void detector_run($/;"	f
+dimensions	detector/detector.c	/^    int dimensions[4];$/;"	m	struct:__anon2	file:
+dimensions	network/npu_data_type.h	/^    int dimensions[4];$/;"	m	struct:__anon9
+dw	network/npu_data_type.h	/^    int  dw;$/;"	m	struct:__anon8
+enlight_free	detector/detector.c	/^void enlight_free(uint8_t* buf)$/;"	f
+enlight_log	detector/detector.c	30;"	d	file:
+enlight_log	detector/detector.c	32;"	d	file:
+enlight_malloc	detector/detector.c	/^uint8_t* enlight_malloc(int size)$/;"	f
+exp_tables	detector/exp_tables.h	/^uint32_t exp_tables[8][256] = {$/;"	v
+fb	network/npu_data_type.h	/^    int  fb;$/;"	m	struct:__anon9
+free_candidate	detector/detector.c	224;"	d	file:
+free_detection	detector/detector.c	/^void free_detection(detection_t* detection)$/;"	f
+free_tensor	detector/detector.c	/^void free_tensor(tensor_t* tensor)$/;"	f
+get_data_size	detector/detector.c	/^int get_data_size(int data_type)$/;"	f
+get_file_size	testapp.c	/^int get_file_size(FILE *fp)$/;"	f
+ia_c	network/npu_data_type.h	/^    int  ia_c;$/;"	m	struct:__anon8
+init_detections	detector/detector.c	/^void init_detections(detection_t* d, int n, box_t* box, uint8_t* class, uint8_t* score)$/;"	f
+iou	detector/detector.c	/^int iou(box_t* l, box_t* r)$/;"	f
+log2_scale	detector/detector.c	/^    int log2_scale;$/;"	m	struct:__anon2	file:
+log2_scale	network/npu_data_type.h	/^    int log2_scale;$/;"	m	struct:__anon9
+main	testapp.c	/^int main(int argc, char **argv)$/;"	f
+malloc_buf	detector/detector.c	/^uint8_t* malloc_buf;$/;"	v
+malloc_buf_used	detector/detector.c	/^int malloc_buf_used[MALLOC_NUM]; $/;"	v
+matmul_var	detector/detector.c	/^void matmul_var(uint8_t* tensor)$/;"	f
+n	detector/detector.c	/^    int n;$/;"	m	struct:__anon4	file:
+n	detector/detector.c	/^    int n;$/;"	m	struct:__anon6	file:
+nms	detector/detector.c	/^void nms(detection_t* detection, candidate_t* candidate, int class, uint8_t th)$/;"	f
+npu_buf_info	npu.h	/^struct npu_buf_info {$/;"	s
+npu_buffer_info	testapp.c	/^struct npu_buffer_info {$/;"	s	file:
+npu_cmd	network/npu_cmd.h	/^uint32_t __attribute__ ((aligned(128), section(".npu"))) npu_cmd[6553] = {$/;"	v
+num_dimension	detector/detector.c	/^    int num_dimension;$/;"	m	struct:__anon2	file:
+num_dimension	network/npu_data_type.h	/^    int num_dimension;$/;"	m	struct:__anon9
+num_element	detector/detector.c	/^    int num_element;$/;"	m	struct:__anon2	file:
+oa_c	network/npu_data_type.h	/^    int  oa_c;$/;"	m	struct:__anon8
+oact_726	network/quantized_network_oact.h	/^act_tensor_t oact_726 = {$/;"	v
+oact_740	network/quantized_network_oact.h	/^act_tensor_t oact_740 = {$/;"	v
+oact_Add_0	network/quantized_network_oact.h	/^act_tensor_t oact_Add_0 = {$/;"	v
+oact_Add_1	network/quantized_network_oact.h	/^act_tensor_t oact_Add_1 = {$/;"	v
+oact_Add_2	network/quantized_network_oact.h	/^act_tensor_t oact_Add_2 = {$/;"	v
+oact_Add_3	network/quantized_network_oact.h	/^act_tensor_t oact_Add_3 = {$/;"	v
+oact_Add_4	network/quantized_network_oact.h	/^act_tensor_t oact_Add_4 = {$/;"	v
+oact_Add_5	network/quantized_network_oact.h	/^act_tensor_t oact_Add_5 = {$/;"	v
+oact_Add_6	network/quantized_network_oact.h	/^act_tensor_t oact_Add_6 = {$/;"	v
+oact_Add_7	network/quantized_network_oact.h	/^act_tensor_t oact_Add_7 = {$/;"	v
+oact_Add_8	network/quantized_network_oact.h	/^act_tensor_t oact_Add_8 = {$/;"	v
+oact_Add_9	network/quantized_network_oact.h	/^act_tensor_t oact_Add_9 = {$/;"	v
+oact_BatchNormalization_11	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_11 = {$/;"	v
+oact_BatchNormalization_14	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_14 = {$/;"	v
+oact_BatchNormalization_17	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_17 = {$/;"	v
+oact_BatchNormalization_2	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_2 = {$/;"	v
+oact_BatchNormalization_20	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_20 = {$/;"	v
+oact_BatchNormalization_23	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_23 = {$/;"	v
+oact_BatchNormalization_26	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_26 = {$/;"	v
+oact_BatchNormalization_29	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_29 = {$/;"	v
+oact_BatchNormalization_32	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_32 = {$/;"	v
+oact_BatchNormalization_35	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_35 = {$/;"	v
+oact_BatchNormalization_38	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_38 = {$/;"	v
+oact_BatchNormalization_41	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_41 = {$/;"	v
+oact_BatchNormalization_44	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_44 = {$/;"	v
+oact_BatchNormalization_47	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_47 = {$/;"	v
+oact_BatchNormalization_5	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_5 = {$/;"	v
+oact_BatchNormalization_50	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_50 = {$/;"	v
+oact_BatchNormalization_54	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_54 = {$/;"	v
+oact_BatchNormalization_57	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_57 = {$/;"	v
+oact_BatchNormalization_60	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_60 = {$/;"	v
+oact_BatchNormalization_63	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_63 = {$/;"	v
+oact_BatchNormalization_8	network/quantized_network_oact.h	/^act_tensor_t oact_BatchNormalization_8 = {$/;"	v
+oact_Concat_0	network/quantized_network_oact.h	/^act_tensor_t oact_Concat_0 = {$/;"	v
+oact_Concat_1	network/quantized_network_oact.h	/^act_tensor_t oact_Concat_1 = {$/;"	v
+oact_Conv_65	network/quantized_network_oact.h	/^act_tensor_t oact_Conv_65 = {$/;"	v
+oact_Conv_67	network/quantized_network_oact.h	/^act_tensor_t oact_Conv_67 = {$/;"	v
+oact_Conv_69	network/quantized_network_oact.h	/^act_tensor_t oact_Conv_69 = {$/;"	v
+oact_Conv_71	network/quantized_network_oact.h	/^act_tensor_t oact_Conv_71 = {$/;"	v
+oact_Conv_73	network/quantized_network_oact.h	/^act_tensor_t oact_Conv_73 = {$/;"	v
+oact_Conv_75	network/quantized_network_oact.h	/^act_tensor_t oact_Conv_75 = {$/;"	v
+oact_Conv_77	network/quantized_network_oact.h	/^act_tensor_t oact_Conv_77 = {$/;"	v
+oact_Conv_79	network/quantized_network_oact.h	/^act_tensor_t oact_Conv_79 = {$/;"	v
+oact_Conv_81	network/quantized_network_oact.h	/^act_tensor_t oact_Conv_81 = {$/;"	v
+oact_Conv_83	network/quantized_network_oact.h	/^act_tensor_t oact_Conv_83 = {$/;"	v
+oact_Conv_84	network/quantized_network_oact.h	/^act_tensor_t oact_Conv_84 = {$/;"	v
+oact_Conv_85	network/quantized_network_oact.h	/^act_tensor_t oact_Conv_85 = {$/;"	v
+oact_Relu_0	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_0 = {$/;"	v
+oact_Relu_1	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_1 = {$/;"	v
+oact_Relu_10	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_10 = {$/;"	v
+oact_Relu_11	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_11 = {$/;"	v
+oact_Relu_12	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_12 = {$/;"	v
+oact_Relu_13	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_13 = {$/;"	v
+oact_Relu_14	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_14 = {$/;"	v
+oact_Relu_15	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_15 = {$/;"	v
+oact_Relu_16	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_16 = {$/;"	v
+oact_Relu_17	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_17 = {$/;"	v
+oact_Relu_18	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_18 = {$/;"	v
+oact_Relu_19	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_19 = {$/;"	v
+oact_Relu_2	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_2 = {$/;"	v
+oact_Relu_20	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_20 = {$/;"	v
+oact_Relu_21	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_21 = {$/;"	v
+oact_Relu_22	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_22 = {$/;"	v
+oact_Relu_23	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_23 = {$/;"	v
+oact_Relu_24	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_24 = {$/;"	v
+oact_Relu_25	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_25 = {$/;"	v
+oact_Relu_26	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_26 = {$/;"	v
+oact_Relu_27	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_27 = {$/;"	v
+oact_Relu_28	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_28 = {$/;"	v
+oact_Relu_29	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_29 = {$/;"	v
+oact_Relu_3	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_3 = {$/;"	v
+oact_Relu_30	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_30 = {$/;"	v
+oact_Relu_31	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_31 = {$/;"	v
+oact_Relu_32	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_32 = {$/;"	v
+oact_Relu_33	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_33 = {$/;"	v
+oact_Relu_34	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_34 = {$/;"	v
+oact_Relu_35	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_35 = {$/;"	v
+oact_Relu_36	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_36 = {$/;"	v
+oact_Relu_37	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_37 = {$/;"	v
+oact_Relu_38	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_38 = {$/;"	v
+oact_Relu_39	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_39 = {$/;"	v
+oact_Relu_4	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_4 = {$/;"	v
+oact_Relu_40	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_40 = {$/;"	v
+oact_Relu_41	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_41 = {$/;"	v
+oact_Relu_42	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_42 = {$/;"	v
+oact_Relu_43	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_43 = {$/;"	v
+oact_Relu_44	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_44 = {$/;"	v
+oact_Relu_45	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_45 = {$/;"	v
+oact_Relu_46	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_46 = {$/;"	v
+oact_Relu_47	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_47 = {$/;"	v
+oact_Relu_48	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_48 = {$/;"	v
+oact_Relu_49	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_49 = {$/;"	v
+oact_Relu_5	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_5 = {$/;"	v
+oact_Relu_50	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_50 = {$/;"	v
+oact_Relu_51	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_51 = {$/;"	v
+oact_Relu_52	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_52 = {$/;"	v
+oact_Relu_6	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_6 = {$/;"	v
+oact_Relu_7	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_7 = {$/;"	v
+oact_Relu_8	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_8 = {$/;"	v
+oact_Relu_9	network/quantized_network_oact.h	/^act_tensor_t oact_Relu_9 = {$/;"	v
+oact_Reshape_0	network/quantized_network_oact.h	/^act_tensor_t oact_Reshape_0 = {$/;"	v
+oact_Reshape_1	network/quantized_network_oact.h	/^act_tensor_t oact_Reshape_1 = {$/;"	v
+oact_Reshape_10	network/quantized_network_oact.h	/^act_tensor_t oact_Reshape_10 = {$/;"	v
+oact_Reshape_11	network/quantized_network_oact.h	/^act_tensor_t oact_Reshape_11 = {$/;"	v
+oact_Reshape_2	network/quantized_network_oact.h	/^act_tensor_t oact_Reshape_2 = {$/;"	v
+oact_Reshape_3	network/quantized_network_oact.h	/^act_tensor_t oact_Reshape_3 = {$/;"	v
+oact_Reshape_4	network/quantized_network_oact.h	/^act_tensor_t oact_Reshape_4 = {$/;"	v
+oact_Reshape_5	network/quantized_network_oact.h	/^act_tensor_t oact_Reshape_5 = {$/;"	v
+oact_Reshape_6	network/quantized_network_oact.h	/^act_tensor_t oact_Reshape_6 = {$/;"	v
+oact_Reshape_7	network/quantized_network_oact.h	/^act_tensor_t oact_Reshape_7 = {$/;"	v
+oact_Reshape_8	network/quantized_network_oact.h	/^act_tensor_t oact_Reshape_8 = {$/;"	v
+oact_Reshape_9	network/quantized_network_oact.h	/^act_tensor_t oact_Reshape_9 = {$/;"	v
+oact_Softmax_0	network/quantized_network_oact.h	/^act_tensor_t oact_Softmax_0 = {$/;"	v
+oact_Transpose_0	network/quantized_network_oact.h	/^act_tensor_t oact_Transpose_0 = {$/;"	v
+oact_Transpose_1	network/quantized_network_oact.h	/^act_tensor_t oact_Transpose_1 = {$/;"	v
+oact_Transpose_10	network/quantized_network_oact.h	/^act_tensor_t oact_Transpose_10 = {$/;"	v
+oact_Transpose_11	network/quantized_network_oact.h	/^act_tensor_t oact_Transpose_11 = {$/;"	v
+oact_Transpose_2	network/quantized_network_oact.h	/^act_tensor_t oact_Transpose_2 = {$/;"	v
+oact_Transpose_3	network/quantized_network_oact.h	/^act_tensor_t oact_Transpose_3 = {$/;"	v
+oact_Transpose_4	network/quantized_network_oact.h	/^act_tensor_t oact_Transpose_4 = {$/;"	v
+oact_Transpose_5	network/quantized_network_oact.h	/^act_tensor_t oact_Transpose_5 = {$/;"	v
+oact_Transpose_6	network/quantized_network_oact.h	/^act_tensor_t oact_Transpose_6 = {$/;"	v
+oact_Transpose_7	network/quantized_network_oact.h	/^act_tensor_t oact_Transpose_7 = {$/;"	v
+oact_Transpose_8	network/quantized_network_oact.h	/^act_tensor_t oact_Transpose_8 = {$/;"	v
+oact_Transpose_9	network/quantized_network_oact.h	/^act_tensor_t oact_Transpose_9 = {$/;"	v
+oact_input1	network/quantized_network_oact.h	/^act_tensor_t oact_input1 = {$/;"	v
+oact_real_Reshape_0	network/quantized_network_oact.h	/^act_tensor_t oact_real_Reshape_0 = {$/;"	v
+oact_real_Reshape_1	network/quantized_network_oact.h	/^act_tensor_t oact_real_Reshape_1 = {$/;"	v
+oact_real_Reshape_10	network/quantized_network_oact.h	/^act_tensor_t oact_real_Reshape_10 = {$/;"	v
+oact_real_Reshape_11	network/quantized_network_oact.h	/^act_tensor_t oact_real_Reshape_11 = {$/;"	v
+oact_real_Reshape_2	network/quantized_network_oact.h	/^act_tensor_t oact_real_Reshape_2 = {$/;"	v
+oact_real_Reshape_3	network/quantized_network_oact.h	/^act_tensor_t oact_real_Reshape_3 = {$/;"	v
+oact_real_Reshape_4	network/quantized_network_oact.h	/^act_tensor_t oact_real_Reshape_4 = {$/;"	v
+oact_real_Reshape_5	network/quantized_network_oact.h	/^act_tensor_t oact_real_Reshape_5 = {$/;"	v
+oact_real_Reshape_6	network/quantized_network_oact.h	/^act_tensor_t oact_real_Reshape_6 = {$/;"	v
+oact_real_Reshape_7	network/quantized_network_oact.h	/^act_tensor_t oact_real_Reshape_7 = {$/;"	v
+oact_real_Reshape_8	network/quantized_network_oact.h	/^act_tensor_t oact_real_Reshape_8 = {$/;"	v
+oact_real_Reshape_9	network/quantized_network_oact.h	/^act_tensor_t oact_real_Reshape_9 = {$/;"	v
+post_process	detector/detector.c	/^detection_t* post_process(tensor_t* score, tensor_t* loc, tensor_t* prior, uint8_t th_conf, uint8_t th_nms)$/;"	f
+print_usage	testapp.c	/^void print_usage(void)$/;"	f
+prior_box	detector/prior_box.h	/^unsigned char prior_box[] = {$/;"	v
+prior_box	network/quantized_prior_box.h	/^unsigned char prior_box[] = {$/;"	v
+quantized_network	network/quantized_network.h	/^uint32_t __attribute__ ((aligned(128), section(".npu"))) quantized_network[1023056] = {$/;"	v
+r	network/npu_data_type.h	/^    int  r;$/;"	m	struct:__anon8
+run_post_process	network/post_process.c	/^void run_post_process(void *oact_base)$/;"	f
+s	network/npu_data_type.h	/^    int  s;$/;"	m	struct:__anon8
+score	detector/detector.c	/^    float* score;$/;"	m	struct:__anon6	file:
+score	detector/detector.c	/^    uint8_t* score;$/;"	m	struct:__anon4	file:
+size	network/npu_data_type.h	/^    int  size;$/;"	m	struct:__anon9
+size	npu.h	/^    unsigned int size;$/;"	m	struct:npu_buf_info
+size	testapp.c	/^    unsigned int size;$/;"	m	struct:npu_buffer_info	file:
+softmax	detector/detector.c	/^tensor_t* softmax(tensor_t* src)$/;"	f
+swap	detector/detector.c	/^void swap(int* l, int* r)$/;"	f
+table	detector/detector.c	/^    void* table;$/;"	m	struct:__anon2	file:
+tensor_t	detector/detector.c	/^} tensor_t;$/;"	t	typeref:struct:__anon2	file:
+thresholding	detector/detector.c	/^candidate_t* thresholding(tensor_t* score, tensor_t* loc, tensor_t* prior, int class, uint8_t th)$/;"	f
+wbuf	network/npu_data_type.h	/^    void *wbuf;$/;"	m	struct:__anon8
+weight_BatchNormalization_11	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_11= {$/;"	v
+weight_BatchNormalization_14	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_14= {$/;"	v
+weight_BatchNormalization_17	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_17= {$/;"	v
+weight_BatchNormalization_2	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_2= {$/;"	v
+weight_BatchNormalization_20	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_20= {$/;"	v
+weight_BatchNormalization_23	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_23= {$/;"	v
+weight_BatchNormalization_26	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_26= {$/;"	v
+weight_BatchNormalization_29	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_29= {$/;"	v
+weight_BatchNormalization_32	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_32= {$/;"	v
+weight_BatchNormalization_35	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_35= {$/;"	v
+weight_BatchNormalization_38	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_38= {$/;"	v
+weight_BatchNormalization_41	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_41= {$/;"	v
+weight_BatchNormalization_44	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_44= {$/;"	v
+weight_BatchNormalization_47	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_47= {$/;"	v
+weight_BatchNormalization_5	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_5= {$/;"	v
+weight_BatchNormalization_50	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_50= {$/;"	v
+weight_BatchNormalization_54	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_54= {$/;"	v
+weight_BatchNormalization_57	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_57= {$/;"	v
+weight_BatchNormalization_60	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_60= {$/;"	v
+weight_BatchNormalization_63	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_63= {$/;"	v
+weight_BatchNormalization_8	network/quantized_network.h	/^weight_tensor_t weight_BatchNormalization_8= {$/;"	v
+weight_Conv_65	network/quantized_network.h	/^weight_tensor_t weight_Conv_65= {$/;"	v
+weight_Conv_67	network/quantized_network.h	/^weight_tensor_t weight_Conv_67= {$/;"	v
+weight_Conv_69	network/quantized_network.h	/^weight_tensor_t weight_Conv_69= {$/;"	v
+weight_Conv_71	network/quantized_network.h	/^weight_tensor_t weight_Conv_71= {$/;"	v
+weight_Conv_73	network/quantized_network.h	/^weight_tensor_t weight_Conv_73= {$/;"	v
+weight_Conv_75	network/quantized_network.h	/^weight_tensor_t weight_Conv_75= {$/;"	v
+weight_Conv_77	network/quantized_network.h	/^weight_tensor_t weight_Conv_77= {$/;"	v
+weight_Conv_79	network/quantized_network.h	/^weight_tensor_t weight_Conv_79= {$/;"	v
+weight_Conv_81	network/quantized_network.h	/^weight_tensor_t weight_Conv_81= {$/;"	v
+weight_Conv_83	network/quantized_network.h	/^weight_tensor_t weight_Conv_83= {$/;"	v
+weight_Conv_84	network/quantized_network.h	/^weight_tensor_t weight_Conv_84= {$/;"	v
+weight_Conv_85	network/quantized_network.h	/^weight_tensor_t weight_Conv_85= {$/;"	v
+weight_Relu_0	network/quantized_network.h	/^weight_tensor_t weight_Relu_0= {$/;"	v
+weight_Relu_1	network/quantized_network.h	/^weight_tensor_t weight_Relu_1= {$/;"	v
+weight_Relu_10	network/quantized_network.h	/^weight_tensor_t weight_Relu_10= {$/;"	v
+weight_Relu_11	network/quantized_network.h	/^weight_tensor_t weight_Relu_11= {$/;"	v
+weight_Relu_12	network/quantized_network.h	/^weight_tensor_t weight_Relu_12= {$/;"	v
+weight_Relu_13	network/quantized_network.h	/^weight_tensor_t weight_Relu_13= {$/;"	v
+weight_Relu_14	network/quantized_network.h	/^weight_tensor_t weight_Relu_14= {$/;"	v
+weight_Relu_15	network/quantized_network.h	/^weight_tensor_t weight_Relu_15= {$/;"	v
+weight_Relu_16	network/quantized_network.h	/^weight_tensor_t weight_Relu_16= {$/;"	v
+weight_Relu_17	network/quantized_network.h	/^weight_tensor_t weight_Relu_17= {$/;"	v
+weight_Relu_18	network/quantized_network.h	/^weight_tensor_t weight_Relu_18= {$/;"	v
+weight_Relu_19	network/quantized_network.h	/^weight_tensor_t weight_Relu_19= {$/;"	v
+weight_Relu_2	network/quantized_network.h	/^weight_tensor_t weight_Relu_2= {$/;"	v
+weight_Relu_20	network/quantized_network.h	/^weight_tensor_t weight_Relu_20= {$/;"	v
+weight_Relu_21	network/quantized_network.h	/^weight_tensor_t weight_Relu_21= {$/;"	v
+weight_Relu_22	network/quantized_network.h	/^weight_tensor_t weight_Relu_22= {$/;"	v
+weight_Relu_23	network/quantized_network.h	/^weight_tensor_t weight_Relu_23= {$/;"	v
+weight_Relu_24	network/quantized_network.h	/^weight_tensor_t weight_Relu_24= {$/;"	v
+weight_Relu_25	network/quantized_network.h	/^weight_tensor_t weight_Relu_25= {$/;"	v
+weight_Relu_26	network/quantized_network.h	/^weight_tensor_t weight_Relu_26= {$/;"	v
+weight_Relu_27	network/quantized_network.h	/^weight_tensor_t weight_Relu_27= {$/;"	v
+weight_Relu_28	network/quantized_network.h	/^weight_tensor_t weight_Relu_28= {$/;"	v
+weight_Relu_29	network/quantized_network.h	/^weight_tensor_t weight_Relu_29= {$/;"	v
+weight_Relu_3	network/quantized_network.h	/^weight_tensor_t weight_Relu_3= {$/;"	v
+weight_Relu_30	network/quantized_network.h	/^weight_tensor_t weight_Relu_30= {$/;"	v
+weight_Relu_31	network/quantized_network.h	/^weight_tensor_t weight_Relu_31= {$/;"	v
+weight_Relu_32	network/quantized_network.h	/^weight_tensor_t weight_Relu_32= {$/;"	v
+weight_Relu_33	network/quantized_network.h	/^weight_tensor_t weight_Relu_33= {$/;"	v
+weight_Relu_34	network/quantized_network.h	/^weight_tensor_t weight_Relu_34= {$/;"	v
+weight_Relu_35	network/quantized_network.h	/^weight_tensor_t weight_Relu_35= {$/;"	v
+weight_Relu_36	network/quantized_network.h	/^weight_tensor_t weight_Relu_36= {$/;"	v
+weight_Relu_37	network/quantized_network.h	/^weight_tensor_t weight_Relu_37= {$/;"	v
+weight_Relu_38	network/quantized_network.h	/^weight_tensor_t weight_Relu_38= {$/;"	v
+weight_Relu_39	network/quantized_network.h	/^weight_tensor_t weight_Relu_39= {$/;"	v
+weight_Relu_4	network/quantized_network.h	/^weight_tensor_t weight_Relu_4= {$/;"	v
+weight_Relu_40	network/quantized_network.h	/^weight_tensor_t weight_Relu_40= {$/;"	v
+weight_Relu_41	network/quantized_network.h	/^weight_tensor_t weight_Relu_41= {$/;"	v
+weight_Relu_42	network/quantized_network.h	/^weight_tensor_t weight_Relu_42= {$/;"	v
+weight_Relu_43	network/quantized_network.h	/^weight_tensor_t weight_Relu_43= {$/;"	v
+weight_Relu_44	network/quantized_network.h	/^weight_tensor_t weight_Relu_44= {$/;"	v
+weight_Relu_45	network/quantized_network.h	/^weight_tensor_t weight_Relu_45= {$/;"	v
+weight_Relu_46	network/quantized_network.h	/^weight_tensor_t weight_Relu_46= {$/;"	v
+weight_Relu_47	network/quantized_network.h	/^weight_tensor_t weight_Relu_47= {$/;"	v
+weight_Relu_48	network/quantized_network.h	/^weight_tensor_t weight_Relu_48= {$/;"	v
+weight_Relu_49	network/quantized_network.h	/^weight_tensor_t weight_Relu_49= {$/;"	v
+weight_Relu_5	network/quantized_network.h	/^weight_tensor_t weight_Relu_5= {$/;"	v
+weight_Relu_50	network/quantized_network.h	/^weight_tensor_t weight_Relu_50= {$/;"	v
+weight_Relu_51	network/quantized_network.h	/^weight_tensor_t weight_Relu_51= {$/;"	v
+weight_Relu_52	network/quantized_network.h	/^weight_tensor_t weight_Relu_52= {$/;"	v
+weight_Relu_6	network/quantized_network.h	/^weight_tensor_t weight_Relu_6= {$/;"	v
+weight_Relu_7	network/quantized_network.h	/^weight_tensor_t weight_Relu_7= {$/;"	v
+weight_Relu_8	network/quantized_network.h	/^weight_tensor_t weight_Relu_8= {$/;"	v
+weight_Relu_9	network/quantized_network.h	/^weight_tensor_t weight_Relu_9= {$/;"	v
+weight_tensor_t	network/npu_data_type.h	/^} weight_tensor_t;$/;"	t	typeref:struct:__anon8
+wfb	network/npu_data_type.h	/^    int  wfb;$/;"	m	struct:__anon8
+wsize	network/npu_data_type.h	/^    int  wsize;$/;"	m	struct:__anon8
+x_max	detector/detector.c	/^    float x_max;$/;"	m	struct:__anon5	file:
+x_max	detector/detector.c	/^    int16_t x_max;$/;"	m	struct:__anon3	file:
+x_min	detector/detector.c	/^    float x_min;$/;"	m	struct:__anon5	file:
+x_min	detector/detector.c	/^    int16_t x_min;$/;"	m	struct:__anon3	file:
+y_max	detector/detector.c	/^    float y_max;$/;"	m	struct:__anon5	file:
+y_max	detector/detector.c	/^    int16_t y_max;$/;"	m	struct:__anon3	file:
+y_min	detector/detector.c	/^    float y_min;$/;"	m	struct:__anon5	file:
+y_min	detector/detector.c	/^    int16_t y_min;$/;"	m	struct:__anon3	file:
+zp	network/npu_data_type.h	/^    int zp;$/;"	m	struct:__anon9

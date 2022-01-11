@@ -1,16 +1,18 @@
 
-CROSS_COMPILE = riscv64-unknown-linux-gnu-
+#CROSS_COMPILE = riscv64-unknown-linux-gnu-
+CROSS_COMPILE = riscv64-eyenix-linux-gnu-
 CC		:= $(CROSS_COMPILE)gcc
 
 OUTDIR = output
 SRCDIR_NETWORK = network
 SRCDIR_DETECTOR = detector
 
-CFLAGS	:= -Wall -D__NO_INLINE__ -mcmodel=medany -std=gnu99
-CFLAGS	+= -O0 -g 
+CFLAGS	:= -Wall -D__NO_INLINE__  -mcmodel=medany -std=gnu99
+CFLAGS	+= -O2 -g 
 CFLAGS	+= -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks -march=rv64imafdc -mabi=lp64d
 CFLAGS	+= -DCLEAR_MEM -DNPU_DEBUG
-CFLAGS	+= -DSUPPORT_MALLOC
+CFLAGS	+= -DTEST_ON_EMBEDDED_LINUX
+CFLAGS	+= -pg 
 
 LIBS	:= -lm
 

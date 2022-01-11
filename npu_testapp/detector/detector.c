@@ -2,51 +2,47 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-//#define DETECTOR_DEBUG
 
-#ifdef TEST_ON_PC
+#define TENSOR_BUF_STRIDE 32
+
+#ifdef TEST_ON_EMBEDDED_LINUX
 #define SUPPORT_MALLOC
-#define MAKE_EXPTABLE
+//#define MAKE_EXPTABLE
 #endif
 
-#ifndef TEST_ON_PC
+#ifdef TEST_ON_BARE
+
+#endif
+
+typedef struct
+{
+    int16_t x_min;
+    int16_t x_max;
+    int16_t y_min;
+    int16_t y_max;
+    int16_t class;
+    int16_t score;
+} obj_t;
+
+typedef struct
+{
+    int cnt;
+    obj_t obj[256];
+} objs_t;
+
+objs_t objects;
+
+#ifndef MAKE_EXPTABLE
 #   include "exp_tables.h"
 #endif
 
-/*
-#ifdef TEST_ON_PC
-#define SUPPORT_MALLOC
-
-//#   include "prior_box.h"
-#endif
-*/
-
-#ifdef TEST_ON_PC
-#   define __i386__
-#endif
-
-#undef __i86__
-#ifdef __i386__
-#   define enlight_log(...)  do { printf(__VA_ARGS__);  } while(0)
+#ifndef TEST_ON_EMBEDDED_LINUX
+extern int _printf(const char *format, ...);
+#   define enlight_log(...)  do { _printf(__VA_ARGS__); } while(0)
 #else
 #   define enlight_log(...)  do { printf(__VA_ARGS__); } while(0)
+
 #endif
-
-//#define NUM_BOX 8732
-#define NUM_BOX 3000
-//#define NUM_CLASS 21
-
-//#define TH_IOU  192
-//#define TH_IOU  128
-//#define TH_IOU  96
-#define TH_IOU  96
-//#define TH_CONF 192
-//#define TH_CONF 128
-//#define TH_CONF 96
-#define TH_CONF 64
-
-#define NUM_BIT (8 - 1)
-
 enum {
     TYPE_UINT8,
     TYPE_INT8,
@@ -118,8 +114,8 @@ typedef detection_f_t candidate_f_t;
 #define MIN(A, B) (((A)>(B))?(B):(A))
 #define MAX(A, B) (((A)>(B))?(A):(B))
 
-#define MALLOC_UNIT (256*1024)
-#define MALLOC_NUM (20)
+#define MALLOC_UNIT (2*256*1024)
+#define MALLOC_NUM (8)
 
 #ifndef SUPPORT_MALLOC
 //uint8_t malloc_buf[MALLOC_NUM*(MALLOC_UNIT+4)];
@@ -144,9 +140,12 @@ uint8_t* enlight_malloc(int size)
             ptr = (int*)(malloc_buf + i*(MALLOC_UNIT+8));
             *ptr = i;
 
+            //enlight_log("enlight_malloc size %d %d\n", size, i);
             return (uint8_t*)(ptr + 2);
         }
     }
+
+    enlight_log("malloc failed\n");
 
     return NULL;
 #endif
@@ -300,7 +299,7 @@ tensor_t* softmax(tensor_t* src)
 {
     tensor_t* dst = alloc_tensor(TYPE_UINT8, src->num_dimension, src->dimensions, 0);
 
-    uint32_t e, sum;
+    uint32_t e, sum, _sum;
     int class;
 
     // batches, num_boxes, num_classes
@@ -308,45 +307,35 @@ tensor_t* softmax(tensor_t* src)
     int num_class = src->dimensions[2];
 
     int8_t* next;
-    int8_t* last = src->buf + (num_box * num_class) - num_class;
+    int8_t* last = src->buf + (num_box * TENSOR_BUF_STRIDE) - TENSOR_BUF_STRIDE;
 
     uint8_t* conf = (uint8_t*)dst->buf;
-    uint32_t* table = (uint32_t*)src->table;
+    uint32_t* table = (uint32_t*)src->table + 128;
+    uint32_t exp_look_up[100];
 
-    for (next = src->buf ; next <= last ; next += num_class)
+    for (next = src->buf ; next <= last ; next += TENSOR_BUF_STRIDE)
     {
         sum = 0.;
 
         for (class = 0 ; class < num_class ; class++)
         {
-            e = table[next[class]+128];
+            e = table[next[class]];
+            exp_look_up[class] = e;
             sum += e;
         }
 
+        _sum = (1<<31) / sum;
         for (class = 0 ; class < num_class ; class++)
         {
-            e = table[next[class]+128];
-            *conf++ = (uint8_t)(MIN(256 * e / sum, 255));
+            uint64_t e_ = (uint64_t)exp_look_up[class];
+            *conf++ = (uint8_t)MIN(((e_ * _sum) >> (31 - 8)), 255);
         }
     }
-
-#if 0
-    conf = (uint8_t*)dst->buf;
-
-    for (next = src->buf ; next <= last ; next += num_class)
-    {
-        printf("\n");
-
-        for (class = 0 ; class < num_class ; class++)
-            printf("%f ", *conf++/256.);
-        
-    }
-#endif
 
     return dst;
 }
 
-#ifdef TEST_ON_PC
+#ifdef MAKE_EXPTABLE
 uint32_t (*build_exp_tables())[256]
 {
     int i, log2_scale;
@@ -354,21 +343,23 @@ uint32_t (*build_exp_tables())[256]
 
     uint32_t (*table)[256];
 
-    table = (uint32_t (*)[256])malloc(8*4*256);
+    table = (uint32_t (*)[256])malloc(3*8*4*256);
+    int min_s = -8;
+    int max_s = 16;
+    int len_s = max_s - min_s;
 
-    for (log2_scale = 0; log2_scale < 8; log2_scale++) {
+    for (log2_scale = 0; log2_scale < len_s; log2_scale++) {
 
         for (i = 0 ; i < 128; i++) {
-            e = round(exp(i / pow(2, (NUM_BIT - log2_scale))) * 256. + 0.5);
+            e = round(exp(i / pow(2, log2_scale + min_s)) * 256. + 0.5);
             table[log2_scale][128+i] = (uint32_t)MIN(e, 4294967295/32);
         }
 
         for (i = 128 ; i <  256; i++) {
-            e = round(exp((i-256) / pow(2, (NUM_BIT - log2_scale))) * 256. + 0.5);
+            e = round(exp((i-256) / pow(2, log2_scale + min_s)) * 256. + 0.5);
             table[log2_scale][i-128] = (uint32_t)MIN(e, 4294967295/32);
         }
     }
-
 
     {
         FILE* fp;
@@ -380,11 +371,11 @@ uint32_t (*build_exp_tables())[256]
         fprintf(fp, "#ifndef __EXP_TABLES_H__\n");
         fprintf(fp, "#define __EXP_TABLES_H__\n");
         fprintf(fp, "\n");
-        fprintf(fp, "uint32_t exp_tables[8][256] = {\n");
+        fprintf(fp, "uint32_t exp_tables[%d][256] = {\n", len_s);
 
-        for (log2_scale=0; log2_scale < 8; log2_scale++) {
+        for (log2_scale=0; log2_scale < len_s; log2_scale++) {
 
-            fprintf(fp, "    /*  %d */\n", log2_scale);
+            fprintf(fp, "    /*  %d */\n", log2_scale + min_s);
             fprintf(fp, "    {\n");
 
             for (i = 0 ; i < 256 ; i++)
@@ -392,7 +383,6 @@ uint32_t (*build_exp_tables())[256]
                 if (i % 16 == 0)
                     fprintf(fp, "    ");
                 fprintf(fp, "0x%08x, ", table[log2_scale][i]);
-                //fprintf(fp, "%8d, ", table[log2_scale][i]);
                 if (i % 16 == 15)
                     fprintf(fp, "\n");
             }
@@ -413,48 +403,63 @@ uint32_t (*build_exp_tables())[256]
 
 void build_box_info(box_t* box, tensor_t* loc, tensor_t* prior, int idx)
 {
-    int _idx = idx << 2;
+    int loc_idx = idx * TENSOR_BUF_STRIDE;
+    int box_idx = idx << 2;
 
-    int8_t* _loc = (int8_t*)loc->buf + _idx;
-    uint8_t* _prior = (uint8_t*)prior->buf + _idx;
+    int8_t* _loc = (int8_t*)loc->buf + loc_idx;
+    uint8_t* _prior = (uint8_t*)prior->buf + box_idx;
 
-    int _log2_scale;
     uint32_t* table = (uint32_t*)loc->table;
 
-    int w = (int)_prior[2] * table[_loc[2]+128];
-    int h = (int)_prior[3] * table[_loc[3]+128];
+    int x, y, w, h, x_center, y_center, x_offset, y_offset;
 
-    // log2_scale of exponent is 0
-    _log2_scale = prior->log2_scale - 8;
-    if (_log2_scale > 0)
-    {
-        w <<= _log2_scale;
-        h <<= _log2_scale;
-    }
-    else
-    {
-        w >>= -_log2_scale;
-        h >>= -_log2_scale;
-    }
+    const int S_cal = 8;
+    const int S_tbl = 8;
+    int l2s;
 
-    int x_offset = (int)_loc[0] * (int)_prior[2];
-    int y_offset = (int)_loc[1] * (int)_prior[3];
+    // w, h scale
+    // S_w = S_prior * S_tbl
+    // S_h = S_prior * S_tbl
+    w = (int)_prior[2] * table[_loc[2]+128];
+    h = (int)_prior[3] * table[_loc[3]+128];
 
-    // location is int8_t and prior is uint8_t
-    _log2_scale = loc->log2_scale + prior->log2_scale - 7;
-    if (_log2_scale > 0)
-    {
-        x_offset <<= _log2_scale;
-        y_offset <<= _log2_scale;
+    l2s = (prior->log2_scale + S_tbl) - S_cal;
+    if (l2s > 0) {
+        w >>= l2s;
+        h >>= l2s;
     }
-    else
-    {
-        x_offset >>= -_log2_scale;
-        y_offset >>= -_log2_scale;
+    else {
+        w <<= -l2s;
+        h <<= -l2s;
     }
 
-    int x = _prior[0] - w / 2 + x_offset;
-    int y = _prior[1] - h / 2 + y_offset;
+    // x_offset, y_offset scale
+    // S_xoff = S_loc * S_prior
+    x_offset = (int)_loc[0] * (int)_prior[2];
+    y_offset = (int)_loc[1] * (int)_prior[3];
+
+    l2s = (loc->log2_scale + prior->log2_scale) - S_cal;
+    if (l2s > 0) {
+        x_offset >>= l2s;
+        y_offset >>= l2s;
+    }
+    else {
+        x_offset <<= -l2s;
+        y_offset <<= -l2s;
+    }
+
+    l2s = (prior->log2_scale) - S_cal;
+    if (l2s > 0) {
+        x_center = _prior[0] >> l2s;
+        y_center = _prior[1] >> l2s;
+    }
+    else {
+        x_center = _prior[0] << (-l2s);
+        y_center = _prior[1] << (-l2s);
+    }
+
+    x = x_center - w / 2 + x_offset;
+    y = y_center - h / 2 + y_offset;
 
     box->x_min = x;
     box->x_max = x + w;
@@ -464,7 +469,8 @@ void build_box_info(box_t* box, tensor_t* loc, tensor_t* prior, int idx)
 
 // input: { batch, boxes, classes }
 // output: { boxes { coordinate, score } }
-candidate_t* thresholding(tensor_t* score, tensor_t* loc, tensor_t* prior, int class, uint8_t th)
+candidate_t* thresholding(tensor_t* score, tensor_t* loc, tensor_t* prior,
+                          int class, uint8_t th)
 {
     uint8_t* _score = score->buf + class;
 
@@ -602,108 +608,8 @@ void nms(detection_t* detection, candidate_t* candidate, int class, uint8_t th)
     enlight_free((uint8_t*)indice);
 }
 
-//FIXME. Merge with weight.
-void matmul_var(uint8_t* tensor)
-{
-#define VAR0 0.4
-#define VAR1 0.4
-#define VAR2 0.8
-#define VAR3 0.8
-    int i;
-    int8_t* src =(int8_t *)tensor;
-    int32_t l0, l1, l2, l3;
-
-    for (i = 0; i < NUM_BOX; i++) {
-        l0 = src[i*4 + 0] * VAR0;
-        l1 = src[i*4 + 1] * VAR1;
-        l2 = src[i*4 + 2] * VAR2;
-        l3 = src[i*4 + 3] * VAR3;
-
-        src[i*4 + 0] = l0;
-        src[i*4 + 1] = l1;
-        src[i*4 + 2] = l2;
-        src[i*4 + 3] = l3;
-        // printf("%02x%02x%02x%02x\n",
-        //     (uint8_t)src[i*4 + 0],
-        //     (uint8_t)src[i*4 + 1],
-        //     (uint8_t)src[i*4 + 2],
-        //     (uint8_t)src[i*4 + 3]);
-    }
-}
-
-void arrange_tensor(uint8_t* src, uint8_t* dst, int num_ch) 
-{
-    int i, r, s, h, w, c;
-    const int ratio = 6;
-
-    //[6,19,19,32] [6,10,10,32] [6,5,5,32], [6,3,3,32], [6,2,2,32], [6,1,1,32]
-    const int H0 = 19, W0 = 19;
-    const int H1 = 10, W1 = 10;
-    const int H2 = 5,  W2 = 5;
-    const int H3 = 3,  W3 = 3;
-    const int H4 = 2,  W4 = 2;
-    const int H5 = 1,  W5 = 1;
-    const int CH = 32;
-    uint8_t (*s0)[H0][W0][CH];
-    uint8_t (*s1)[H1][W1][CH];
-    uint8_t (*s2)[H2][W2][CH];
-    uint8_t (*s3)[H3][W3][CH];
-    uint8_t (*s4)[H4][W4][CH];
-    uint8_t (*s5)[H5][W5][CH];
-
-    s0 = (uint8_t (*)[H0][W0][CH])(&src[0]);
-    s1 = (uint8_t (*)[H0][W0][CH])(&src[19*19*32*ratio]);
-    s2 = (uint8_t (*)[H0][W0][CH])(&src[19*19*32*ratio + 10*10*32*ratio]);
-    s3 = (uint8_t (*)[H0][W0][CH])(&src[19*19*32*ratio + 10*10*32*ratio + 5*5*32*ratio]);
-    s4 = (uint8_t (*)[H0][W0][CH])(&src[19*19*32*ratio + 10*10*32*ratio + 5*5*32*ratio + 3*3*32*ratio]);
-    s5 = (uint8_t (*)[H0][W0][CH])(&src[19*19*32*ratio + 10*10*32*ratio + 5*5*32*ratio + 3*3*32*ratio + 2*2*32*ratio]);
-
-    for (i = 0; i < H0 * W0; i++) {
-        for (r = 0; r < ratio; r++) {
-            h = i / W0; w = i % W0;
-            for (c = 0; c < num_ch; c++) {
-                *dst++ = s0[r][h][w][c];
-            }
-        }
-    }
-    for (i = 0; i < H1 * W1; i++) {
-        for (r = 0; r < ratio; r++) {
-            h = i / W1; w = i % W1;
-            for (c = 0; c < num_ch; c++)
-                *dst++ = s1[r][h][w][c];
-        }
-    }
-    for (i = 0; i < H2 * W2; i++) {
-        for (r = 0; r < ratio; r++) {
-            h = i / W2; w = i % W2;
-            for (c = 0; c < num_ch; c++)
-                *dst++ = s2[r][h][w][c];
-        }
-    }
-    for (i = 0; i < H3 * W3; i++) {
-        for (r = 0; r < ratio; r++) {
-            h = i / W3; w = i % W3;
-            for (c = 0; c < num_ch; c++)
-                *dst++ = s3[r][h][w][c];
-        }
-    }
-    for (i = 0; i < H4 * W4; i++) {
-        for (r = 0; r < ratio; r++) {
-            h = i / W4; w = i % W4;
-            for (c = 0; c < num_ch; c++)
-                *dst++ = s4[r][h][w][c];
-        }
-    }
-    for (i = 0; i < H5 * W5; i++) {
-        for (r = 0; r < ratio; r++) {
-            h = i / W5; w = i % W5;
-            for (c = 0; c < num_ch; c++)
-                *dst++ = s5[r][h][w][c];
-        }
-    }
-}
-
-detection_t* post_process(tensor_t* score, tensor_t* loc, tensor_t* prior, uint8_t th_conf, uint8_t th_nms)
+detection_t* post_process(tensor_t* score, tensor_t* loc, tensor_t* prior,
+                          uint8_t th_conf, uint8_t th_nms)
 {
     detection_t* detection = alloc_detection(score->num_element);
 
@@ -732,8 +638,8 @@ detection_t* post_process(tensor_t* score, tensor_t* loc, tensor_t* prior, uint8
 }
 
 int detector(void* prior_buf, void* loc_buf, void* score_buf,
-             int log2_scl_prior, int log2_scl_loc, int log2_score_scl,
-             int num_class)
+             int log2_prior_scl, int log2_loc_scl, int log2_score_scl,
+             int num_class, int th_conf, int th_iou, int num_box)
 {
 
     volatile unsigned long cycle0_h;
@@ -759,71 +665,42 @@ int detector(void* prior_buf, void* loc_buf, void* score_buf,
         malloc_buf_used[i] = 0;
 #endif
 
-#ifdef DETECTOR_DEBUG
-    {
-        int i;    
-        uint8_t*data = (uint8_t*)score_buf;
-
-        for (i = 0; i < 40; i++)
-            enlight_log("S[%02x]:%02x%02x%02x%02x_%02x%02x%02x%02x_%02x%02x%02x%02x_%02x%02x%02x%02x\n",
-                 &score_buf[i*16],
-                 data[i*16 + 0], data[i*16 + 1], data[i*16 + 2], data[i*16 + 3],
-                 data[i*16 + 4], data[i*16 + 5], data[i*16 + 6], data[i*16 + 7],
-                 data[i*16 + 8], data[i*16 + 9], data[i*16 + 10], data[i*16 + 11],
-                 data[i*16 + 12], data[i*16 + 13], data[i*16 + 14], data[i*16 + 15]);
-
-        data = (uint8_t*)loc_buf;
-
-        enlight_log("\n\n");
-        for (i = 0; i < 40; i++) 
-            enlight_log("L[%02x]:%02x%02x%02x%02x_%02x%02x%02x%02x_%02x%02x%02x%02x_%02x%02x%02x%02x\n",
-                 &loc_buf[i*16],
-                 data[i*16 + 0], data[i*16 + 1], data[i*16 + 2], data[i*16 + 3],
-                 data[i*16 + 4], data[i*16 + 5], data[i*16 + 6], data[i*16 + 7],
-                 data[i*16 + 8], data[i*16 + 9], data[i*16 + 10], data[i*16 + 11],
-                 data[i*16 + 12], data[i*16 + 13], data[i*16 + 14], data[i*16 + 15]);
-
-        data = (uint8_t*)prior_buf;
-
-        enlight_log("\n\n");
-        for (i = 0; i < 40; i++) 
-            enlight_log("P[%02x]:%02x%02x%02x%02x_%02x%02x%02x%02x_%02x%02x%02x%02x_%02x%02x%02x%02x\n",
-                 &loc_buf[i*16],
-                 data[i*16 + 0], data[i*16 + 1], data[i*16 + 2], data[i*16 + 3],
-                 data[i*16 + 4], data[i*16 + 5], data[i*16 + 6], data[i*16 + 7],
-                 data[i*16 + 8], data[i*16 + 9], data[i*16 + 10], data[i*16 + 11],
-                 data[i*16 + 12], data[i*16 + 13], data[i*16 + 14], data[i*16 + 15]);
-    }
-#endif
-
     prior.buf = prior_buf;
-    prior.log2_scale = log2_scl_prior;
+    prior.log2_scale = log2_prior_scl;
     prior.data_type = TYPE_UINT8;
-    prior.num_element = NUM_BOX*4;
+    prior.num_element = num_box*4;
     prior.num_dimension = 2;
-    prior.dimensions[0] = NUM_BOX;
+    prior.dimensions[0] = num_box;
     prior.dimensions[1] = 4;
     prior.table = NULL;
 
     loc.buf = loc_buf;
-    loc.log2_scale = log2_scl_loc;
+    loc.log2_scale = log2_loc_scl;
     loc.data_type = TYPE_INT8;
-    loc.num_element = 1*NUM_BOX*4;
+    loc.num_element = 1*num_box*4;
     loc.num_dimension = 3;
     loc.dimensions[0] = 1;
-    loc.dimensions[1] = NUM_BOX;
+    loc.dimensions[1] = num_box;
     loc.dimensions[2] = 4;
-    loc.table = exp_tables[log2_scl_loc];
+    loc.table = exp_tables[8 + log2_loc_scl];
 
     score.buf = score_buf;
     score.log2_scale = log2_score_scl;
     score.data_type = TYPE_INT8;
-    score.num_element = 1*NUM_BOX*num_class;
+    score.num_element = 1*num_box*num_class;
     score.num_dimension = 3;
     score.dimensions[0] = 1;
-    score.dimensions[1] = NUM_BOX;
+    score.dimensions[1] = num_box;
     score.dimensions[2] = num_class;
-    score.table = exp_tables[log2_score_scl];
+    score.table = exp_tables[8 + log2_score_scl];
+
+    if ((log2_score_scl < -7) || (log2_score_scl > 15)) {
+        enlight_log("exp_tables is not ready for log2_score_scl {%d}\n", log2_score_scl);
+    }
+
+    if ((log2_loc_scl < -7) || (log2_loc_scl > 15)) {
+        enlight_log("exp_tables is not ready for log2_loc_scl {%d}\n", log2_loc_scl);
+    }
 
 #ifdef DETECTOR_DEBUG
     enlight_log(" prior.log2_scale   %08x\n",     prior.log2_scale);
@@ -856,29 +733,20 @@ int detector(void* prior_buf, void* loc_buf, void* score_buf,
 #endif
 
     enlight_log("Postproc start\n");
-#ifdef __i386__
-    hz = 36 * 1024 * 1024 / 10;
-    asm volatile ("rdtsc" : "=a"(cycle0), "=d"(cycle0_h));
-#else
     hz = 600 * 1024;
     asm volatile ("rdcycle %0" : "=r" (cycle0));
-#endif
 
-    detection_t* r1 = post_process(&score, &loc, &prior, TH_CONF, TH_IOU);
+    detection_t* r1 = post_process(&score, &loc, &prior, th_conf, th_iou);
 
-#ifdef __i386__
-    hz = 36 * 1024 * 1024 / 10;
-    asm volatile ("rdtsc" : "=a"(cycle1), "=d"(cycle1_h));
-#else
-    hz = 600 * 1024;
     asm volatile ("rdcycle %0" : "=r" (cycle1));
-#endif
 
     enlight_log("%d object is detected\n", r1->n);
 
     enlight_log("[Postproc cycles] %ld \n", cycle1 - cycle0);
     //enlight_log("%ld ms taken\n", (cycle1 - cycle0) / hz);
     
+    objects.cnt=0;
+
     for (i = 0 ; i < r1->n ; i++)
     {
         box_t* b = r1->box + i;
@@ -888,27 +756,21 @@ int detector(void* prior_buf, void* loc_buf, void* score_buf,
                 300*b->x_max/256,
                 300*b->y_min/256,
                 300*b->y_max/256,
-                r1->score[i],
+                ((int)r1->score[i])*100/256,
                 r1->class[i]);
+
+
+        obj_t *detect_obj = &objects.obj[objects.cnt];
+        detect_obj->x_min = 300*b->x_min/256;
+        detect_obj->x_max = 300*b->x_max/256;
+        detect_obj->y_min = 300*b->y_min/256;
+        detect_obj->y_max = 300*b->y_max/256;
+        detect_obj->class = r1->score[i];
+        detect_obj->score = r1->class[i];
+        objects.cnt++;
+
     }
 
-#ifdef TEST_ON_PC
-    enlight_log("in floating point unit...\n");
-
-    for (i = 0 ; i < r1->n ; i++)
-    {
-        box_t* b = r1->box + i;
-
-   
-        enlight_log("x_min: %.2f, x_max: %.2f, y_min: %.2f, y_max: %.2f, score: %.2f, class: %d\n", 
-                b->x_min / 256.0,
-                b->x_max / 256.0,
-                b->y_min / 256.0,
-                b->y_max / 256.0,
-                r1->score[i] / 256.0,
-                r1->class[i]);
-    }
-#endif
 
 #ifdef MAKE_EXPTABLE
     free(exp_tables);
@@ -917,13 +779,13 @@ int detector(void* prior_buf, void* loc_buf, void* score_buf,
     return 0;
 }
 
-
-#ifndef SUPPORT_MALLOC
 void detector_init(void *work_buf)
 { 
+    objects.cnt=0;
+#ifndef SUPPORT_MALLOC
     malloc_buf = (uint8_t*)work_buf;
-}
 #endif
+}
 
 void detector_run(
     uint8_t *prior_box,
@@ -932,47 +794,13 @@ void detector_run(
     int log2_prior_scl,
     int log2_loc_scl,
     int log2_score_scl,
-    int num_class) 
+    int num_class, int stages, int *grids, int* vars,
+    int th_conf, int th_iou, int num_box) 
 {
-#ifdef SUPPORT_MALLOC
-    void* loc_buf = (void*)malloc(sizeof(uint8_t)*1*NUM_BOX*4);
-    void* score_buf = (void*)malloc(sizeof(uint8_t)*1*NUM_BOX*32);
-#else
-    uint8_t *loc_buf = malloc_buf + 20*256*1024; // 12000 = NUM_BOX * 4 = 3000 * 4
-    uint8_t *score_buf = loc_buf + 16*1024;     //  63000 = NUM_BOX * 21 = 3000 * 21
-#endif
-    //enlight_log("0x%08x\n", loc_buf);
-    //enlight_log("0x%08x\n", score_buf);
 
-#ifdef DETECTOR_DEBUG
-    {
-        int i;
-        uint8_t*data = score_buf_32;
+    log2_loc_scl += 3;
 
-        for (i = 0; i < 80; i++)
-            enlight_log("[%02x]:%02x%02x%02x%02x_%02x%02x%02x%02x_%02x%02x%02x%02x_%02x%02x%02x%02x\n",
-                 score_buf_32 + i*16,
-                 *data++, *data++, *data++, *data++, *data++, *data++, *data++, *data++, 
-                 *data++, *data++, *data++, *data++, *data++, *data++, *data++, *data++);
-
-        data = loc_buf_32;
-        for (i = 0; i < 80; i++)
-            enlight_log("[%02x]:%02x%02x%02x%02x_%02x%02x%02x%02x_%02x%02x%02x%02x_%02x%02x%02x%02x\n",
-                 loc_buf_32 + i*16,
-                 *data++, *data++, *data++, *data++, *data++, *data++, *data++, *data++, 
-                 *data++, *data++, *data++, *data++, 
-                 *data++, *data++, *data++, *data++);
-    }
-#endif
-
-    // [6, H, W, 32] -> [H, W, 6*21]
-    arrange_tensor(score_buf_32, score_buf, 21);
-    // [6, H, W, 4] -> [H, W, 6*4]
-    arrange_tensor(loc_buf_32, loc_buf, 4);
-    // loc * [0.1, 0.1, 0.2, 0.2] * (4)
-    matmul_var(loc_buf);
-    log2_loc_scl = log2_loc_scl - 2; //multiplied by 4 at matmul_var
-
-    detector(prior_box, loc_buf, score_buf, log2_prior_scl , log2_loc_scl , log2_score_scl, num_class);
+    detector(prior_box, loc_buf_32, score_buf_32,
+             log2_prior_scl, log2_loc_scl, log2_score_scl,
+             num_class, (uint8_t)th_conf, (uint8_t)th_iou, num_box);
 }
-
