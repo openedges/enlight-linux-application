@@ -15,9 +15,10 @@ struct npu_net_req {
 	char *wei_data;
 };
 
-#define POST_NMS	1
+#define POST_SSD	1
 #define POST_CLASS	2
 #define POST_YOLOV2	3
+#define POST_EFFDET	4
 
 #define NPU_IOCTL_MAGIC      'k'
  

@@ -62,6 +62,9 @@ static int get_data_size(int dtype)
         case TYPE_UINT16:
         case TYPE_INT16:
             return 2;
+        case TYPE_INT32:
+        case TYPE_UINT32:
+            return 4;
         case TYPE_FLOAT:
             return 8;
         default:
@@ -207,7 +210,7 @@ void softmax(tensor_t* src, tensor_t* dst, int stride)
 
 void softmax_with_threshold(tensor_t* src, tensor_t* dst, int *cand_box, 
                             int *num_cand_box, int stride, uint32_t threshold,
-                            int max_nms_cand)
+                            int has_bg, int max_nms_cand)
 {
     int i;
 
@@ -242,15 +245,15 @@ void softmax_with_threshold(tensor_t* src, tensor_t* dst, int *cand_box,
 
             sum_x_th = (uint64_t)sum * threshold;
 
-            for (c = 1; c < num_class; c++) {
+            for (c = has_bg; c < num_class; c++) {
 
                 if (e_array[c] >= sum_x_th) {
                     // clear buffer once
-                    if (valid_box == 0) { 
+                    if (valid_box == 0) {
                         int j;
                         for (j = 0; j < num_class; j++)
                             conf[n * num_class + j] = 0;
-                        valid_box = 1; 
+                        valid_box = 1;
                     }
 
                     conf[n * num_class + c] = (uint8_t)MIN(e_array[c] / sum, 255);
@@ -344,14 +347,71 @@ void nms(detection_t* detection, cand_t* cand, int class, uint8_t th)
 
             deleted[i] = 1;
             n++;
-        }
 
-        // non-maximum surpression
-        for (j = i - 1; j >= 0; j--) {
-            test_index = indice[j];
-            if (!deleted[j]) {
-                if (iou(&cand_box[ref_index], &cand_box[test_index]) >= th)
-                    deleted[j] = 1;
+            // non-maximum surpression
+            for (j = i - 1; j >= 0; j--) {
+                test_index = indice[j];
+                if (!deleted[j]) {
+                    if (iou(&cand_box[ref_index], &cand_box[test_index]) >= th)
+                        deleted[j] = 1;
+                }
+            }
+        }
+    }
+
+    detection->n = n;
+
+    enlight_free((uint8_t*)indice);
+    enlight_free((uint8_t*)deleted);
+}
+
+
+void fastnms(detection_t* detection, cand_t* cand, uint8_t th)
+{
+    int i, j, score, class, n = detection->n;
+    int num_cand = cand->n;
+    int ref_index, test_index;
+
+    int* indice    = (int*)enlight_malloc(sizeof(int)*num_cand);
+    char* deleted  = (char*)enlight_malloc(sizeof(char)*num_cand);
+
+    box_t* cand_box = cand->box;
+    uint8_t* cand_score = cand->score;
+    uint8_t* cand_class = cand->class;
+
+    box_t* detection_box = detection->box;
+    uint8_t* detection_class = detection->class;
+    uint8_t* detection_score = detection->score;
+
+    for (i = 0 ; i < num_cand ; i++){
+        indice[i]   = i;
+        deleted[i]  = 0;
+    }
+
+    intro_sort(cand_score, indice, num_cand);
+
+    //indices are sorted ascending order
+    for (i = num_cand - 1; i >=0; i--) {
+        ref_index = indice[i];
+        if (!deleted[i]) {
+            score = cand_score[ref_index];
+            class = cand_class[ref_index];
+
+            // add detection result
+            copy_box(&detection_box[n], &cand_box[ref_index]);
+            detection_class[n] = class;
+            detection_score[n] = score;
+
+            deleted[i] = 1;
+            n++;
+
+            // non-maximum surpression
+            for (j = i - 1; j >= 0; j--) {
+                test_index = indice[j];
+                if (!deleted[j]) {
+                    if (iou(&cand_box[ref_index], &cand_box[test_index]) >= th)
+                        deleted[j] = 1;
+                }
             }
         }
     }
@@ -372,7 +432,7 @@ void sigmoid(tensor_t *src, tensor_t *dst, int stride)
     int num_class = src->dims[2];
 
     int8_t* class_conf = src->buf;
-    uint8_t* sig_tbl = (uint8_t*)src->sig_tbl;
+    uint32_t* sig_tbl = (uint32_t*)src->sig_tbl;
     uint8_t* conf = (uint8_t*)dst->buf;
 
     if (num_class > MAX_CLASS_NUM) {
@@ -381,12 +441,67 @@ void sigmoid(tensor_t *src, tensor_t *dst, int stride)
 
     for (i = 0 ; i < num_box; i++) {
         for (c = 0 ; c < num_class ; c++) {
-            *conf++ = sig_tbl[class_conf[c]];
+            *conf++ = (uint8_t)sig_tbl[class_conf[c]];
         }
         class_conf += stride;
     }
 }
 
+void sigmoid_with_threshold(tensor_t *src, tensor_t *dst, int *cand_box,
+                            int *num_cand_box, int stride, uint32_t threshold,
+                            int has_bg, int max_nms_cand)
+{
+    int i, c, n = 0;
+
+    // batches, num_boxes, num_classes
+    int num_box = src->dims[1];
+    int num_class = src->dims[2];
+
+    int8_t* class_conf = src->buf;
+    uint32_t* sig_tbl = (uint32_t*)src->sig_tbl;
+    uint8_t* conf = (uint8_t*)dst->buf;
+
+    if (num_class > MAX_CLASS_NUM) {
+        enlight_log("error: num_class > %d\n", MAX_CLASS_NUM);
+    }
+
+    uint8_t sig_value;
+    uint8_t sig_value_buffer[MAX_CLASS_NUM];
+    int valid_box;
+
+    for (i = 0; i < num_box; i++) {
+        valid_box = 0;
+
+        for (c = has_bg; c < num_class ; c++) {
+            sig_value = (uint8_t)sig_tbl[class_conf[c]];
+
+            if (sig_value >= threshold) {
+                valid_box = 1;
+            }
+            else {
+                // accordance with dumping tensor from python
+                sig_value = 0;
+            }
+
+            sig_value_buffer[c] = sig_value;
+        }
+
+        if (valid_box) {
+
+            for (c = has_bg; c < num_class ; c++)
+                conf[n * num_class + c] = sig_value_buffer[c];
+
+            cand_box[n++] = i;
+        }
+
+        class_conf += stride;
+
+        if (n == max_nms_cand)
+            break;
+    }
+
+    *num_cand_box = n;
+}
 
 void heap_sort(const uint8_t* unsorted, int* indices, int N)
 {

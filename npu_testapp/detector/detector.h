@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 #ifdef TEST_ON_EMBEDDED_LINUX
-   #define SUPPORT_MALLOC
+#   define SUPPORT_MALLOC
 #endif
 
 #ifndef MIN
@@ -38,8 +38,11 @@ enum {
     TYPE_INT8,
     TYPE_UINT16,
     TYPE_INT16,
+    TYPE_INT32,
+    TYPE_UINT32,
     TYPE_FLOAT
 };
+
 
 typedef struct {
     int16_t x_min;
@@ -122,8 +125,12 @@ void copy_tensor_info(tensor_t* dst, tensor_t* src);
 void softmax(tensor_t* src, tensor_t* dst, int stride);
 void softmax_with_threshold(tensor_t* src, tensor_t* dst, int *cand_box,
                             int *num_cand_box, int stride, uint32_t threshold,
-                            int max_nms_cand);
+                            int has_bg, int max_nms_cand);
 int iou(box_t* l, box_t* r);
 void nms(detection_t* detection, cand_t* cand, int class, uint8_t th);
+void fastnms(detection_t* detection, cand_t* cand, uint8_t th);
 void sigmoid(tensor_t *src, tensor_t *dst, int stride);
+void sigmoid_with_threshold(tensor_t* src, tensor_t* dst, int *cand_box,
+                            int *num_cand_box, int stride, uint32_t threshold,
+                            int has_bg, int max_nms_cand);
 void intro_sort(const uint8_t* unsorted, int* indices, int N);

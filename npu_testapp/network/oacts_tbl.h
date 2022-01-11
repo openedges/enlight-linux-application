@@ -13,14 +13,14 @@ act_tensor_t Concat_269 = {
     .data_type = TYPE_INT8,
     .buf = (void*)0x18700, .size = 96000, .fb = 4,
     .num_dimension = 4, .dimensions = {1,32,1,3000},
-    .log2_scale = 2, .zp = 0
+    .log2_scale = 3, .zp = 0
 };
 
 act_tensor_t Concat_270 = {
     .data_type = TYPE_INT8,
     .buf = (void*)0x0, .size = 96000, .fb = 4,
     .num_dimension = 4, .dimensions = {1,32,1,3000},
-    .log2_scale = 5, .zp = 0
+    .log2_scale = 6, .zp = 0
 };
 /*
 

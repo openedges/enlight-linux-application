@@ -14,7 +14,7 @@ static void build_box_info(box_t* box, tensor_t* loc, tensor_t* prior, int idx, 
     int8_t* _loc = (int8_t*)loc->buf + loc_idx;
     uint8_t* _prior = (uint8_t*)prior->buf + box_idx;
 
-    uint8_t* sig_tbl = (uint8_t*)loc->sig_tbl;
+    uint32_t* sig_tbl = (uint32_t*)loc->sig_tbl;
     uint32_t* exp_tbl = (uint32_t*)loc->exp_tbl;
 
     int x, y, w, h, anchor_x, anchor_y;
@@ -128,7 +128,8 @@ detection_t* yolo_post_process(
     int i, j, c;
     int num_cls, num_box;
     int total_num_box = 0;
-    uint8_t *conf_buf, *obj_buf;
+    uint8_t *conf_buf;
+    uint32_t *obj_buf;
     tensor_t* conf[3];
 
     int num_ele = 0;
@@ -195,9 +196,9 @@ detection_t* yolo_post_process(
 }
 
 //#define DEBUG_GET_CAND
-static void get_candidate(void** output_addr, int** cand_buf_addr, int *cand_nums, uint8_t** sig_tbl_addr,
+static void get_candidate(void** output_addr, int** cand_buf_addr, int *cand_nums, uint32_t** sig_tbl_addr,
                          int num_output, int* num_grids, int num_anchor, int num_class,
-                         int th_conf)
+                         uint8_t th_conf)
 {
     const int word = 32;
     const int coord_len = 4;
@@ -235,7 +236,7 @@ static void get_candidate(void** output_addr, int** cand_buf_addr, int *cand_num
     }
 #endif
     int8_t *src, *output;
-    uint8_t *sig_tbl;
+    uint32_t *sig_tbl;
     int *cand_buf;
 
     for(i = 0 ; i < num_output; i++) {
@@ -248,7 +249,7 @@ static void get_candidate(void** output_addr, int** cand_buf_addr, int *cand_num
 
         for (j = 0; j < num_grids[i*2 + 0] * num_grids[i*2 + 1]; j++) {
             for (k = 0; k < num_anchor; k++) {
-                uint8_t obj = sig_tbl[src[k*box_len]];
+                uint32_t obj = sig_tbl[src[k*box_len]];
 
                 if (obj >= th_conf) {
                     if ((cand_cnt + 1) > MAX_CANDIDATE_BOX) {
@@ -267,7 +268,7 @@ static void get_candidate(void** output_addr, int** cand_buf_addr, int *cand_num
 
 //#define DEBUG_DECOMPOSE
 static void decompose_output(
-    void** output_addr, void** prior_box_addr, uint8_t** sig_tbl_addr,
+    void** output_addr, void** prior_box_addr, uint32_t** sig_tbl_addr,
     int num_anchor, int num_class, int num_output,
     int** cand_buf_addr, int* cand_nums,
     tensor_t *loc, tensor_t *conf, tensor_t *prior, tensor_t *obj)
@@ -283,7 +284,8 @@ static void decompose_output(
 
     int box_len, ch, aligned_ch;
     int8_t *coor_dst, *conf_dst, *oact_base;
-    uint8_t *obj_dst, *prior_dst, *sig_tbl;
+    uint8_t *prior_dst;
+    uint32_t *obj_dst, *sig_tbl;
 
     int* cand_buf;
     int cand_num;
@@ -380,7 +382,7 @@ static void decompose_output(
 
         enlight_log("Objectness\n");
         for(j = 0 ; j < cand_num; j++) {
-            enlight_log(" %4d", ((uint8_t*)obj[i].buf)[j]);
+            enlight_log(" %4d", ((uint32_t*)obj[i].buf)[j]);
         }
         enlight_log("\n");
 
@@ -396,10 +398,10 @@ static void decompose_output(
 }
 
 static int yolo_detector(void** prior_box_addr, void** output_addr,
-             uint32_t** out_exp_tbl_addr, uint8_t** out_sig_tbl_addr,
+             uint32_t** out_exp_tbl_addr, uint32_t** out_sig_tbl_addr,
              int pri_scl, int* output_scales, int softmax_use,
              int num_class, int num_anchor, int* num_grids, int num_output,
-             int* img_size,
+             int img_h, int img_w,
              int th_conf, int th_iou)
 {
     int i;
@@ -420,10 +422,9 @@ static int yolo_detector(void** prior_box_addr, void** output_addr,
         cand_size += num_grids[i*2 + 0] * num_grids[i*2 + 1];
     }
 
-    uint8_t  *out_sig_tbl;
-    uint8_t  *sig_tbl_addr[3];
-    uint32_t *out_exp_tbl;
-    uint32_t *exp_tbl_addr[3];
+    uint32_t *out_sig_tbl, *out_exp_tbl;
+    uint32_t *exp_tbl_addr[3], *sig_tbl_addr[3];
+
     for(i = 0; i < num_output; i++) {
         out_sig_tbl = out_sig_tbl_addr[i];
         out_exp_tbl = out_exp_tbl_addr[i];
@@ -435,7 +436,7 @@ static int yolo_detector(void** prior_box_addr, void** output_addr,
                   num_output, num_grids, num_anchor, num_class, th_conf);
 
     void* buf_base[3];
-    uint8_t *obj_buf;
+    uint32_t *obj_buf;
     uint8_t *pri_buf;
     int8_t *loc_buf;
     int8_t *con_buf;
@@ -447,7 +448,7 @@ static int yolo_detector(void** prior_box_addr, void** output_addr,
         cand_num = cand_nums[i];
         output_scl = output_scales[i];
 
-        obj_len = sizeof(uint8_t) * cand_num;
+        obj_len = sizeof(uint32_t) * cand_num;
         pri_len = sizeof(uint8_t) * cand_num * 4;
         loc_len = sizeof(int8_t)  * cand_num * 4;
         con_len = sizeof(int8_t)  * cand_num * num_class;
@@ -456,14 +457,14 @@ static int yolo_detector(void** prior_box_addr, void** output_addr,
         out_sig_tbl = sig_tbl_addr[i];
         out_exp_tbl = exp_tbl_addr[i];
 
-        obj_buf = (uint8_t*)buf_base[i];
+        obj_buf = (uint32_t*)buf_base[i];
         pri_buf = (uint8_t*)obj_buf + obj_len;
         loc_buf = (int8_t*)pri_buf + pri_len;
         con_buf = (int8_t*)loc_buf + loc_len;
 
         obj[i].buf = obj_buf;
         obj[i].scl = 8;
-        obj[i].dtype = TYPE_UINT8;
+        obj[i].dtype = TYPE_UINT32;
         obj[i].num_ele = 1 * cand_num;
         obj[i].num_dim = 2;
         obj[i].dims[0] = 1;
@@ -533,7 +534,7 @@ static int yolo_detector(void** prior_box_addr, void** output_addr,
 
             sprintf(dump_name, "cand_obj_after_sigmoid_%d.bin", i);
             fp = fopen(dump_name, "wb");
-            fwrite(obj[i].buf, 1, 1*cand_num, fp);
+            fwrite(obj[i].buf, 4, 1*cand_num, fp);
             fclose(fp);
         }
     }
@@ -611,10 +612,10 @@ static int yolo_detector(void** prior_box_addr, void** output_addr,
         box_t* b = r1->box + i;
 
         enlight_log("x_min: %d, x_max: %d, y_min: %d, y_max: %d, score: %d, class: %d\n",
-                img_size[0]*b->x_min/256,
-                img_size[0]*b->x_max/256,
-                img_size[1]*b->y_min/256,
-                img_size[1]*b->y_max/256,
+                img_w*b->x_min/256,
+                img_w*b->x_max/256,
+                img_h*b->y_min/256,
+                img_h*b->y_max/256,
                 ((int)r1->score[i])*100/256,
                 r1->class[i]);
 
@@ -624,14 +625,14 @@ static int yolo_detector(void** prior_box_addr, void** output_addr,
         }
 
         obj_t *detect_obj = &objects.obj[objects.cnt];
-        detect_obj->x_min = img_size[0]*b->x_min/256;
-        detect_obj->x_max = img_size[0]*b->x_max/256;
-        detect_obj->y_min = img_size[1]*b->y_min/256;
-        detect_obj->y_max = img_size[1]*b->y_max/256;
-        detect_obj->class = r1->score[i];
-        detect_obj->score = r1->class[i] + 1; // + 1 for background
-        detect_obj->img_w = img_size[0];
-        detect_obj->img_h = img_size[1];
+        detect_obj->x_min = img_w*b->x_min/256;
+        detect_obj->x_max = img_w*b->x_max/256;
+        detect_obj->y_min = img_h*b->y_min/256;
+        detect_obj->y_max = img_h*b->y_max/256;
+        detect_obj->score = (r1->score[i] * 100)/256;
+        detect_obj->class = r1->class[i] + 1; // + 1 for background
+        detect_obj->img_w = img_w;
+        detect_obj->img_h = img_h;
         objects.cnt++;
     }
 
@@ -657,17 +658,17 @@ void yolo_init_detector(void *work_buf)
 
 void yolo_run_detector(
     void** output_addr, void** prior_box_addr,
-    uint32_t** out_exp_tbl_addr, uint8_t** out_sig_tbl_addr,
+    uint32_t** out_exp_tbl_addr, uint32_t** out_sig_tbl_addr,
     int* output_scales, int pri_scl, int softmax_use,
     int num_class, int num_anchor, int* num_grids, int num_output,
-    int* img_size,
+    int img_h, int img_w,
     int th_conf, int th_iou)
 {
     yolo_detector(prior_box_addr, output_addr,
              out_exp_tbl_addr, out_sig_tbl_addr,
              pri_scl, output_scales, softmax_use,
              num_class, num_anchor, num_grids, num_output,
-             img_size,
+             img_h, img_w,
              th_conf, th_iou);
 }
 

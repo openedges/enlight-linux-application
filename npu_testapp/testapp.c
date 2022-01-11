@@ -21,8 +21,10 @@
 #define LOCATION_FILE		"/App/test/Concat_269.oa.bin"
 #define CLASS_GOLDEN_FILE	"/App/test/Gemm_151.oa.bin"
 #define YOLOV2_GOLDEN_FILE	"/App/test/yolov2/Conv2d_22.oa.bin"
-#define DEFAULT_CLASS	1000
+#define EFFDET_SCORE_FILE	"/App/test/Concat_879.oa.bin"
+#define EFFDET_LOCATION_FILE	"/App/test/Concat_878.oa.bin"
 
+#define DEFAULT_CLASS	1000
 #define PAGE_SHIFT 12
 #define ACT_BUF_SIZE	15 * 1024 * 1024
 #define NSEC_PER_MSEC	1000000L
@@ -39,7 +41,7 @@ void print_usage(void)
 		    " -s : Concat_1 golden data file  , default : %s \n"
 		    " -g : Classifer golden data file , default : %s \n"
 		    " -p : post process \n"
-	   	    " \t1 : NMS , 2 : Classifier , default : NMS \n"	 
+	   	    " \t1 : SSD , 2 : Classifier , default : SSD \n"	 
 		    " -n : class num                  , default : %d \n"
 		    " -v : verification out tensor & golden data     \n"
 		, INPUT_FILE
@@ -88,7 +90,7 @@ int Classification_verify(char *ref_path, char *outbuf)
 	return ret;
 }
 
-int NMS_verify(char *outbuf, char *location, char *score)
+int SSD_verify(char *outbuf, char *location, char *score)
 {
 	FILE *sco = fopen(score, "ro");
 	FILE *loc = fopen(location, "ro");
@@ -131,10 +133,52 @@ int NMS_verify(char *outbuf, char *location, char *score)
 	return ret;
 }
 
+int effdet_verify(char *outbuf, char *location, char *score)
+{
+	FILE *sco = fopen(score, "ro");
+	FILE *loc = fopen(location, "ro");
+	char *sco_buf, *loc_buf;
+	int input_size, ret;
+
+	input_size = get_file_size(sco);
+
+	sco_buf = (char *) malloc(input_size * sizeof(char));
+	ret =  fread(sco_buf, 1, input_size, sco);
+	if (ret < 0)
+		printf(" Read fail Score Golden data\n");
+
+	input_size = get_file_size(loc);
+	loc_buf = (char *) malloc(input_size * sizeof(char));
+
+
+	ret =  fread(loc_buf, 1, input_size, loc);
+	if (ret < 0)
+		printf(" Read fail location Golden data\n");
+	
+	ret = memcmp(sco_buf, outbuf, input_size);
+	if(!ret)
+		printf("Score Compare Success!\n");
+	else
+		printf("Score Compare Fail!\n");
+
+	
+	ret = memcmp(loc_buf, outbuf + 0x180a00, input_size);
+	if(!ret)
+		printf("LOCATION Compare Success!\n");
+	else
+		printf("LOCATION Compare Fail!\n");
+
+	free(sco_buf);
+	free(loc_buf);
+	fclose(sco);
+	fclose(loc);
+
+	return ret;
+}
 int YOLOV2_verify(char *outbuf, char *refpath)
 {
 	FILE *ref = fopen(refpath, "ro");
-	FILE *save = fopen("/usr/bin/npu/yolov2/save.bin", "wr");
+	//FILE *save = fopen("/usr/bin/npu/yolov2/save.bin", "wr");
 	char *ref_buf;
 	int input_size, ret;
 
@@ -152,10 +196,10 @@ int YOLOV2_verify(char *outbuf, char *refpath)
 	else
 		printf("Compare Fail!\n");
 	
-	ret =  fwrite(outbuf, 1, input_size, save);
+	//ret =  fwrite(outbuf, 1, input_size, save);
 	free(ref_buf);
 	fclose(ref);
-	fclose(save);
+	//fclose(save);
 
 	return ret;
 }
@@ -178,7 +222,7 @@ int main(int argc, char **argv)
 	char location_file[128] = LOCATION_FILE;
 	char classfier_file[128] = CLASS_GOLDEN_FILE;
 	char yolov2_file[128] = YOLOV2_GOLDEN_FILE;
-	int post = POST_NMS, class = DEFAULT_CLASS;
+	int post = POST_SSD, class = DEFAULT_CLASS;
 
 	FILE *cmd_fp = NULL;
 	FILE *wei_fp = NULL;
@@ -217,6 +261,7 @@ int main(int argc, char **argv)
 /*
  * Open device 
  */
+#if 0
 	if(ENX_VSYS_Init() != 0){
 		printf("ENX_VSYS_Init failed\n");
 		exit(0);
@@ -228,10 +273,10 @@ int main(int argc, char **argv)
 		printf("ENX_UYV_CAPTURE_Init failed\n");
 		exit(0);
 	}
-
+#endif 
 	system("devmem 0x45100008 32 0x00bf0200");
 
-	fd = open("/dev/npu", O_RDWR);
+	fd = open("/dev/npu0", O_RDWR);
 	if (fd < 0) {
 		printf(" open fail NPU Driver\n");
 		exit(0);
@@ -258,8 +303,8 @@ int main(int argc, char **argv)
 /*
  * Network Create
  */
-	//net_req = malloc(sizeof(struct npu_net_req));
-	net_req = malloc(sizeof(net_req));
+	net_req = malloc(sizeof(struct npu_net_req));
+	//net_req = malloc(sizeof(net_req));
 
 	#if 1	
 	net_req->cmd_size = get_file_size(cmd_fp);
@@ -322,16 +367,16 @@ int main(int argc, char **argv)
 	fds.events = POLLIN | POLLOUT | POLLERR;
 	ret = poll((struct pollfd *)&fds, 1, 100 * 1000);
 
-	if (post == POST_NMS || post == POST_YOLOV2)
+	if (post == POST_CLASS) 
+		printf("\nClass : %d\n",classifier_run((u_int8_t *)out_buf, 1000, class));
+	else 
 		run_post_process((void *)out_buf,NULL);
-	else if (post == POST_CLASS) 
-		printf("\n\n\nClass : %d\n\n\n",classifier_run((u_int8_t *)out_buf, 1000, class));
 
 	if (verify) { 
 
 		switch (post) {
-		case POST_NMS:
-			NMS_verify(out_buf, location_file, score_file);
+		case POST_SSD:
+			SSD_verify(out_buf, location_file, score_file);
 		break;
 		case POST_CLASS :
 			Classification_verify(classfier_file, out_buf);
@@ -347,8 +392,11 @@ int main(int argc, char **argv)
 			YOLOV2_verify(out_buf, yolov2_file);
 			fclose(t);
 			free(tbuf);
-		}
 		break;
+		}
+		case POST_EFFDET:
+			effdet_verify(out_buf, EFFDET_LOCATION_FILE, EFFDET_SCORE_FILE);
+			break;
 
 		}
 	}
