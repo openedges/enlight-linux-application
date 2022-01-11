@@ -4,7 +4,7 @@
 #include <stdio.h>
 #endif
 
-objs_t objects;
+extern objs_t objects;
 
 static void build_box_info(box_t* box, tensor_t* loc, tensor_t* prior, int idx, int* num_grid)
 {

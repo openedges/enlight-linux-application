@@ -5,12 +5,15 @@ CC		:= $(CROSS_COMPILE)gcc
 OUTDIR = output
 SRCDIR_NETWORK = network
 SRCDIR_DETECTOR = detector
+LIB = ./
+STATIC_DIR      := enx/lib/libenxmedialink.a
 
 CFLAGS	:= -Wall -D__NO_INLINE__  -mcmodel=medany -std=gnu99
 
+CFLAGS	+= -lpthread 
 CFLAGS	+= -O2 -g 
 CFLAGS	+= -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks -march=rv64imafdc -mabi=lp64d
-#CFLAGS	+= -DCLEAR_MEM -DNPU_DEBUG
+CFLAGS	+= -DCLEAR_MEM -DNPU_DEBUG
 CFLAGS	+= -DCLEAR_MEM
 CFLAGS	+= -DTEST_ON_EMBEDDED_LINUX
 CFLAGS	+= -pg 
@@ -21,7 +24,6 @@ OBJS += network/post_process.o
 OBJS += detector/detector.o detector/classifier.o
 OBJS += detector/ssd_detector.o detector/yolo_detector.o
 
-
 TARGET = testapp
 
 .PHONY: all
@@ -29,6 +31,7 @@ all: $(TARGET)
 
 #$(sw_hex): $(ASMS) $(OBJS) $(OBJS_NETWORK) $(OBJS_DETECTOR)
 $(TARGET): $(OBJS) 
+	$(CC) $(CFLAGS) -o $@ $^ $(STATIC_DIR) 
 
 .PRECIOUS: $(OUTDIR)/%.elf $(OUTDIR)/%.dis $(OUTDIR)/%.bin
 

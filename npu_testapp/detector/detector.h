@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 #ifdef TEST_ON_EMBEDDED_LINUX
-#   define SUPPORT_MALLOC
+   #define SUPPORT_MALLOC
 #endif
 
 #ifndef MIN
@@ -120,6 +120,9 @@ detection_t* alloc_detection(int detect_num);
 void free_detection(detection_t* detection);
 void copy_tensor_info(tensor_t* dst, tensor_t* src);
 void softmax(tensor_t* src, tensor_t* dst, int stride);
+void softmax_with_threshold(tensor_t* src, tensor_t* dst, int *cand_box,
+                            int *num_cand_box, int stride, uint32_t threshold,
+                            int max_nms_cand);
 int iou(box_t* l, box_t* r);
 void nms(detection_t* detection, cand_t* cand, int class, uint8_t th);
 void sigmoid(tensor_t *src, tensor_t *dst, int stride);

@@ -193,14 +193,82 @@ void softmax(tensor_t* src, tensor_t* dst, int stride)
             e_array[c] = e;
             sum += e;
         }
-
-        _sum = (1ULL<<36) / sum;
-        for (c = 0 ; c < num_class ; c++) {
-            uint64_t e_ = (uint64_t)e_array[c];
-            *conf++ = (uint8_t)MIN(((e_ * _sum) >> (36 - 8)), 255);
+        if (sum > 0) {
+            _sum = (1ULL<<36) / sum;
+            for (c = 0 ; c < num_class ; c++) {
+                uint64_t e_ = (uint64_t)e_array[c];
+                *conf++ = (uint8_t)MIN(((e_ * _sum) >> (36 - 8)), 255);
+            }
         }
         class_conf += stride;
     }
+}
+
+
+void softmax_with_threshold(tensor_t* src, tensor_t* dst, int *cand_box, 
+                            int *num_cand_box, int stride, uint32_t threshold,
+                            int max_nms_cand)
+{
+    int i;
+
+    // batches, num_boxes, num_classes
+    int num_box = src->dims[1];
+    int num_class = src->dims[2];
+
+    int8_t* class_conf = src->buf;
+    uint32_t* exp_tbl = (uint32_t*)src->exp_tbl;
+    uint8_t* conf = (uint8_t*)dst->buf;
+
+    int n = 0;
+
+    if (num_class > MAX_CLASS_NUM) {
+        enlight_log("error: num_class > %d\n", MAX_CLASS_NUM);
+    }
+
+    uint32_t e, sum;
+    uint64_t e_array[MAX_CLASS_NUM], sum_x_th;
+    int c, valid_box;
+    for (i = 0; i < num_box; i++) {
+        sum = 0;
+        valid_box = 0;
+
+        for (c = 0; c < num_class ; c++) {
+            e = exp_tbl[class_conf[c]];
+            e_array[c] = (uint64_t)e * 256ULL;
+            sum += e;
+        }
+
+        if (sum > 0) {
+
+            sum_x_th = (uint64_t)sum * threshold;
+
+            for (c = 1; c < num_class; c++) {
+
+                if (e_array[c] >= sum_x_th) {
+                    // clear buffer once
+                    if (valid_box == 0) { 
+                        int j;
+                        for (j = 0; j < num_class; j++)
+                            conf[n * num_class + j] = 0;
+                        valid_box = 1; 
+                    }
+
+                    conf[n * num_class + c] = (uint8_t)MIN(e_array[c] / sum, 255);
+                }
+            }
+
+            if (valid_box) {
+                cand_box[n++] = i;
+            }
+        }
+
+        class_conf += stride;
+        
+        if (n == max_nms_cand)
+            break;
+    }
+
+    *num_cand_box = n;
 }
 
 
@@ -392,6 +460,7 @@ void insertion_sort(const uint8_t* unsorted, int* indices, int N)
 
 }
 
+
 int get_depth(int num_ele)
 {
     int depth_limit = 0;
@@ -401,6 +470,8 @@ int get_depth(int num_ele)
     }
     return depth_limit;
 }
+
+
 void intro_sort(const uint8_t* unsorted, int* indices, int N)
 {
     if(N == 0)

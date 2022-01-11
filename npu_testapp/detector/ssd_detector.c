@@ -1,6 +1,10 @@
 #include "./detector.h"
 
-static objs_t objects;
+#ifdef DUMP
+#include <stdio.h>
+#endif
+
+objs_t objects;
 
 static void build_box_info(box_t* box, tensor_t* loc, tensor_t* prior, int idx, int stride)
 {
@@ -70,23 +74,22 @@ static void build_box_info(box_t* box, tensor_t* loc, tensor_t* prior, int idx, 
 
 // input: { batch, boxes, classes }
 // output: { boxes { coordinate, score } }
-static void thresholding(tensor_t* score, cand_t* cand,
-                          tensor_t* loc, tensor_t* prior,
-                          int class, uint8_t th, int stride)
+static void thresholding(tensor_t* scr, cand_t* cand,
+                         tensor_t* loc, tensor_t* prior,
+                         int class, uint8_t th, int stride)
 {
-    uint8_t* _score = score->buf + class;
+    uint8_t* _scr = scr->buf + class;
 
-    int num_box = score->dims[1];
-    int num_class = score->dims[2];
+    int num_box = scr->dims[1];
+    int num_class = scr->dims[2];
 
     int box, n;
-    int prior_offset;
 
-    for (box = 0, n = 0 ; box < num_box ; box++, _score += num_class) {
-        if (*_score >= th) {
+    for (box = 0, n = 0 ; box < num_box ; box++, _scr += num_class) {
+        if (*_scr >= th) {
             build_box_info(&cand->box[n], loc, prior, box, stride);
             cand->class[n] = class;
-            cand->score[n] = *_score;
+            cand->score[n] = *_scr;
             n++;
         }
     }
@@ -94,47 +97,121 @@ static void thresholding(tensor_t* score, cand_t* cand,
 }
 
 
+static void thresholding_with_candidate(tensor_t* score, cand_t* cand,
+                                        tensor_t* loc, tensor_t* prior,
+                                        int *cand_box, int num_cand_box, 
+                                        int class, uint8_t th, int stride)
+{
+    uint8_t* _score = score->buf + class;
+    uint8_t* current_score;
+
+    int num_class = score->dims[2];
+
+    int i, box_idx;
+    int n = 0;
+
+    for (i = 0; i < num_cand_box; i++) {
+        box_idx = cand_box[i];
+        current_score = num_class * i + _score;
+        if (*current_score >= th) {
+            build_box_info(&cand->box[n], loc, prior, box_idx, stride);
+            cand->class[n] = class;
+            cand->score[n] = *current_score;
+            n++;
+        }
+    }
+    cand->n = n;
+}
+
+#define MAX_NMS_CAND 256
+
 detection_t* ssd_post_process(tensor_t* score, tensor_t* loc, tensor_t* pri,
-                          uint8_t th_conf, uint8_t th_nms, int stride)
+                              uint8_t th_conf, uint8_t th_nms, const int word_size)
 {
     detection_t* detection = alloc_detection(score->num_ele);
 
     // batches, boxes, classes
+    int len_loc = loc->dims[2];
+
+    int num_box = score->dims[1];
     int num_class = score->dims[2];
+
+    int conf_stride = (num_class + (word_size - 1)) & ~ (word_size - 1);
+    int loc_stride = (len_loc + (word_size - 1)) & ~ (word_size - 1);
+
     int class;
 
-    cand_t* candidate;
+    int num_cand_box;
+    int *cand_box = (int*)enlight_malloc(4 * MAX_NMS_CAND);
+  
     tensor_t* conf;
+    int dst_dims[3];
+    int i;
 
-    conf = alloc_tensor(TYPE_UINT8, score->num_dim, score->dims, 0);
+    for (i = 0; i < score->num_dim; i++)
+        dst_dims[i] = score->dims[i];
+    dst_dims[1] = MAX_NMS_CAND;
 
-    softmax(score, conf, stride);
+    conf = alloc_tensor(TYPE_UINT8, score->num_dim, dst_dims, 0);
+
+    softmax_with_threshold(score, conf, cand_box, &num_cand_box,
+                           conf_stride, th_conf, MAX_NMS_CAND);
+
+#ifdef DUMP
+    FILE *fp;
+    fp = fopen("regression_result.bin", "wb");
+    fwrite(conf->buf, 1, num_cand_box * num_class, fp);
+    fclose(fp);
+#endif
 
     for (class = 1 ; class < num_class ; class++)
     {
         int num_box = conf->dims[1];
         cand_t* cand = (cand_t*)alloc_candidate(num_box);
 
-        thresholding(conf, cand, loc, pri, class, th_conf, stride);
+        thresholding_with_candidate(conf, cand, loc, pri, cand_box,
+                                    num_cand_box, class, th_conf, loc_stride);
+
+#ifdef DUMP
+        int num_cand = cand->n;
+        int i;
+        char dump_name[256];
+
+        sprintf(dump_name, "cand_decoded_box_%d.bin", class);
+        if(num_cand > 0) {
+            fp = fopen(dump_name, "wb");
+            int16_t *box = (int16_t*)malloc(sizeof(int16_t) * num_cand * 4);
+            for(i = 0 ; i < num_cand; i++) {
+                box[4 * i + 0] = cand->box[i].x_min;
+                box[4 * i + 1] = cand->box[i].y_min;
+                box[4 * i + 2] = cand->box[i].x_max;
+                box[4 * i + 3] = cand->box[i].y_max;
+            }
+            fwrite(box, 2, 4 * num_cand, fp);
+            fclose(fp);
+            free(box);
+        }
+#endif
 
         nms(detection, cand, class, th_nms);
 
         free_candidate(cand);
     }
 
+    enlight_free((uint8_t*)cand_box);
     free_tensor(conf);
 
     return detection;
 }
 
 static int ssd_detector(void* pri_buf, void* loc_buf, void* score_buf,
-            uint32_t *loc_exp_tbl, uint32_t *score_exp_tbl,
-            int pri_scl, int loc_scl, int score_scl,
-            int num_class, int num_box, int img_size,
-            int th_conf, int th_iou)
+                        uint32_t *loc_exp_tbl, uint32_t *score_exp_tbl,
+                        int pri_scl, int loc_scl, int score_scl,
+                        int num_class, int num_box, int img_size,
+                        int th_conf, int th_iou)
 {
 
-    const int tensor_buf_stride = 32;
+    const int word_size = 32;
     int i;
     volatile unsigned long cycle0, cycle1, cycle0_h, cycle1_h;
 
@@ -207,7 +284,7 @@ static int ssd_detector(void* pri_buf, void* loc_buf, void* score_buf,
     asm volatile ("rdcycle %0" : "=r" (cycle0));
 #endif
 
-    detection_t* r1 = ssd_post_process(&scr, &loc, &pri, th_conf, th_iou, tensor_buf_stride);
+    detection_t* r1 = ssd_post_process(&scr, &loc, &pri, th_conf, th_iou, word_size);
 
 #ifdef __i386__
     asm volatile ("rdtsc" : "=a"(cycle1), "=d"(cycle1_h));
@@ -217,6 +294,22 @@ static int ssd_detector(void* pri_buf, void* loc_buf, void* score_buf,
     enlight_log("[Postproc cycles] %ld \n", cycle1 - cycle0);
 
     enlight_log("%d object is detected\n", r1->n);
+
+#ifdef DUMP
+    if(r1->n > 0) {
+        uint16_t *box_write = (uint16_t*)malloc(2 * 4 * r1->n);
+        for(i = 0 ; i < r1->n; i++) {
+            box_write[4 * i + 0] = r1->box[i].x_min;
+            box_write[4 * i + 1] = r1->box[i].y_min;
+            box_write[4 * i + 2] = r1->box[i].x_max;
+            box_write[4 * i + 3] = r1->box[i].y_max;
+        }
+        FILE *fp = fopen("nms_box_info.bin", "wb");
+        fwrite(box_write, 2, 4 * r1->n, fp);
+        fclose(fp);
+        free(box_write);
+    }
+#endif
     
     for (i = 0 ; i < r1->n ; i++)
     {
@@ -242,6 +335,7 @@ static int ssd_detector(void* pri_buf, void* loc_buf, void* score_buf,
         objects.cnt++;
     }
 
+    enlight_free((uint8_t*)r1);
     return 0;
 }
 
@@ -263,9 +357,9 @@ void ssd_detector_run(
 {
     //detector(prior_box, loc_buf_32_dst, score_buf_32,
     ssd_detector(prior_box, loc_buf_32, score_buf_32,
-             loc_exp_tbl, score_exp_tbl,
-             prior_scl, loc_scl, score_scl,
-             num_class, num_box, img_size,
-             (uint8_t)th_conf, (uint8_t)th_iou);
+                 loc_exp_tbl, score_exp_tbl,
+                 prior_scl, loc_scl, score_scl,
+                 num_class, num_box, img_size,
+                 (uint8_t)th_conf, (uint8_t)th_iou);
 }
 
