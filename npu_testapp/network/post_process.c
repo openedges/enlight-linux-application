@@ -1,6 +1,6 @@
 
 /*
-    This is generated at 2020-05-07 10:23:39.219789
+    This is generated at 2020-11-23 16:08:04.712054
     Openedges Enlight post process main
 */
 
@@ -9,7 +9,6 @@
 #include "oacts_tbl.h"
 #include "quantized_prior_box.h"
 
-//extern void detector_init(void *base);
 void detector_init(void *base);
 
 void detector_run(
@@ -65,4 +64,5 @@ void run_post_process(void *oact_base, void *work_base)
         log2_prior_scl, log2_loc_scl, log2_score_scl,
         num_class, num_stage, grids,
         vars, th_conf, th_iou, num_box);
+
 }

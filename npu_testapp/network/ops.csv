@@ -1,0 +1,328 @@
+name,type,ops,r,s,c,k,g,h,w,ops_
+input.1,,0,0,0,0,0,0,0,0,
+PartSlice_G_IR_0,,0,0,0,0,0,0,0,0,
+Clip_2.G_IR_0,conv,1684800,3,3,3,32,1,13,150,r * s * c * (k // g) * h * w
+Clip_5.G_swap_0,conv,518400,3,3,32,32,32,12,150,r * s * c * (k // g) * h * w
+BatchNormalization_7.G_swap_0,conv,921600,1,1,32,16,1,12,150,r * s * c * (k // g) * h * w
+PartSlice_G_IR_1,,0,0,0,0,0,0,0,0,
+Clip_2.G_IR_1,conv,1555200,3,3,3,32,1,12,150,r * s * c * (k // g) * h * w
+Clip_5.G_swap_1,conv,432000,3,3,32,32,32,10,150,r * s * c * (k // g) * h * w
+BatchNormalization_7.G_swap_1,conv,768000,1,1,32,16,1,10,150,r * s * c * (k // g) * h * w
+PartSlice_G_IR_2,,0,0,0,0,0,0,0,0,
+Clip_2.G_IR_2,conv,1555200,3,3,3,32,1,12,150,r * s * c * (k // g) * h * w
+Clip_5.G_swap_2,conv,432000,3,3,32,32,32,10,150,r * s * c * (k // g) * h * w
+BatchNormalization_7.G_swap_2,conv,768000,1,1,32,16,1,10,150,r * s * c * (k // g) * h * w
+PartSlice_G_IR_3,,0,0,0,0,0,0,0,0,
+Clip_2.G_IR_3,conv,1555200,3,3,3,32,1,12,150,r * s * c * (k // g) * h * w
+Clip_5.G_swap_3,conv,432000,3,3,32,32,32,10,150,r * s * c * (k // g) * h * w
+BatchNormalization_7.G_swap_3,conv,768000,1,1,32,16,1,10,150,r * s * c * (k // g) * h * w
+PartSlice_G_IR_4,,0,0,0,0,0,0,0,0,
+Clip_2.G_IR_4,conv,1555200,3,3,3,32,1,12,150,r * s * c * (k // g) * h * w
+Clip_5.G_swap_4,conv,432000,3,3,32,32,32,10,150,r * s * c * (k // g) * h * w
+BatchNormalization_7.G_swap_4,conv,768000,1,1,32,16,1,10,150,r * s * c * (k // g) * h * w
+PartSlice_G_IR_5,,0,0,0,0,0,0,0,0,
+Clip_2.G_IR_5,conv,1555200,3,3,3,32,1,12,150,r * s * c * (k // g) * h * w
+Clip_5.G_swap_5,conv,432000,3,3,32,32,32,10,150,r * s * c * (k // g) * h * w
+BatchNormalization_7.G_swap_5,conv,768000,1,1,32,16,1,10,150,r * s * c * (k // g) * h * w
+PartSlice_G_IR_6,,0,0,0,0,0,0,0,0,
+Clip_2.G_IR_6,conv,1555200,3,3,3,32,1,12,150,r * s * c * (k // g) * h * w
+Clip_5.G_swap_6,conv,432000,3,3,32,32,32,10,150,r * s * c * (k // g) * h * w
+BatchNormalization_7.G_swap_6,conv,768000,1,1,32,16,1,10,150,r * s * c * (k // g) * h * w
+PartSlice_G_IR_7,,0,0,0,0,0,0,0,0,
+Clip_2.G_IR_7,conv,1555200,3,3,3,32,1,12,150,r * s * c * (k // g) * h * w
+Clip_5.G_swap_7,conv,432000,3,3,32,32,32,10,150,r * s * c * (k // g) * h * w
+BatchNormalization_7.G_swap_7,conv,768000,1,1,32,16,1,10,150,r * s * c * (k // g) * h * w
+PartSlice_G_IR_8,,0,0,0,0,0,0,0,0,
+Clip_2.G_IR_8,conv,1555200,3,3,3,32,1,12,150,r * s * c * (k // g) * h * w
+Clip_5.G_swap_8,conv,432000,3,3,32,32,32,10,150,r * s * c * (k // g) * h * w
+BatchNormalization_7.G_swap_8,conv,768000,1,1,32,16,1,10,150,r * s * c * (k // g) * h * w
+PartSlice_G_IR_9,,0,0,0,0,0,0,0,0,
+Clip_2.G_IR_9,conv,1555200,3,3,3,32,1,12,150,r * s * c * (k // g) * h * w
+Clip_5.G_swap_9,conv,432000,3,3,32,32,32,10,150,r * s * c * (k // g) * h * w
+BatchNormalization_7.G_swap_9,conv,768000,1,1,32,16,1,10,150,r * s * c * (k // g) * h * w
+PartSlice_G_IR_10,,0,0,0,0,0,0,0,0,
+Clip_2.G_IR_10,conv,1555200,3,3,3,32,1,12,150,r * s * c * (k // g) * h * w
+Clip_5.G_swap_10,conv,432000,3,3,32,32,32,10,150,r * s * c * (k // g) * h * w
+BatchNormalization_7.G_swap_10,conv,768000,1,1,32,16,1,10,150,r * s * c * (k // g) * h * w
+PartSlice_G_IR_11,,0,0,0,0,0,0,0,0,
+Clip_2.G_IR_11,conv,1555200,3,3,3,32,1,12,150,r * s * c * (k // g) * h * w
+Clip_5.G_swap_11,conv,432000,3,3,32,32,32,10,150,r * s * c * (k // g) * h * w
+BatchNormalization_7.G_swap_11,conv,768000,1,1,32,16,1,10,150,r * s * c * (k // g) * h * w
+PartSlice_G_IR_12,,0,0,0,0,0,0,0,0,
+Clip_2.G_IR_12,conv,1555200,3,3,3,32,1,12,150,r * s * c * (k // g) * h * w
+Clip_5.G_swap_12,conv,432000,3,3,32,32,32,10,150,r * s * c * (k // g) * h * w
+BatchNormalization_7.G_swap_12,conv,768000,1,1,32,16,1,10,150,r * s * c * (k // g) * h * w
+PartSlice_G_IR_13,,0,0,0,0,0,0,0,0,
+Clip_2.G_IR_13,conv,1555200,3,3,3,32,1,12,150,r * s * c * (k // g) * h * w
+Clip_5.G_swap_13,conv,432000,3,3,32,32,32,10,150,r * s * c * (k // g) * h * w
+BatchNormalization_7.G_swap_13,conv,768000,1,1,32,16,1,10,150,r * s * c * (k // g) * h * w
+PartSlice_G_IR_14,,0,0,0,0,0,0,0,0,
+Clip_2.G_IR_14,conv,1166400,3,3,3,32,1,9,150,r * s * c * (k // g) * h * w
+Clip_5.G_swap_14,conv,345600,3,3,32,32,32,8,150,r * s * c * (k // g) * h * w
+BatchNormalization_7.G_swap_14,conv,614400,1,1,32,16,1,8,150,r * s * c * (k // g) * h * w
+BatchNormalization_7,,0,0,0,0,0,0,0,0,
+PartSlice_G_IR_15,,0,0,0,0,0,0,0,0,
+Clip_10.G_IR_0,conv,4147200,1,1,16,96,1,18,150,r * s * c * (k // g) * h * w
+Clip_13.G_swap_0,conv,583200,3,3,96,96,96,9,75,r * s * c * (k // g) * h * w
+BatchNormalization_15.G_swap_0,conv,1555200,1,1,96,24,1,9,75,r * s * c * (k // g) * h * w
+PartSlice_G_IR_16,,0,0,0,0,0,0,0,0,
+Clip_10.G_IR_1,conv,3916800,1,1,16,96,1,17,150,r * s * c * (k // g) * h * w
+Clip_13.G_swap_1,conv,518400,3,3,96,96,96,8,75,r * s * c * (k // g) * h * w
+BatchNormalization_15.G_swap_1,conv,1382400,1,1,96,24,1,8,75,r * s * c * (k // g) * h * w
+PartSlice_G_IR_17,,0,0,0,0,0,0,0,0,
+Clip_10.G_IR_2,conv,3916800,1,1,16,96,1,17,150,r * s * c * (k // g) * h * w
+Clip_13.G_swap_2,conv,518400,3,3,96,96,96,8,75,r * s * c * (k // g) * h * w
+BatchNormalization_15.G_swap_2,conv,1382400,1,1,96,24,1,8,75,r * s * c * (k // g) * h * w
+PartSlice_G_IR_18,,0,0,0,0,0,0,0,0,
+Clip_10.G_IR_3,conv,3916800,1,1,16,96,1,17,150,r * s * c * (k // g) * h * w
+Clip_13.G_swap_3,conv,518400,3,3,96,96,96,8,75,r * s * c * (k // g) * h * w
+BatchNormalization_15.G_swap_3,conv,1382400,1,1,96,24,1,8,75,r * s * c * (k // g) * h * w
+PartSlice_G_IR_19,,0,0,0,0,0,0,0,0,
+Clip_10.G_IR_4,conv,3916800,1,1,16,96,1,17,150,r * s * c * (k // g) * h * w
+Clip_13.G_swap_4,conv,518400,3,3,96,96,96,8,75,r * s * c * (k // g) * h * w
+BatchNormalization_15.G_swap_4,conv,1382400,1,1,96,24,1,8,75,r * s * c * (k // g) * h * w
+PartSlice_G_IR_20,,0,0,0,0,0,0,0,0,
+Clip_10.G_IR_5,conv,3916800,1,1,16,96,1,17,150,r * s * c * (k // g) * h * w
+Clip_13.G_swap_5,conv,518400,3,3,96,96,96,8,75,r * s * c * (k // g) * h * w
+BatchNormalization_15.G_swap_5,conv,1382400,1,1,96,24,1,8,75,r * s * c * (k // g) * h * w
+PartSlice_G_IR_21,,0,0,0,0,0,0,0,0,
+Clip_10.G_IR_6,conv,3916800,1,1,16,96,1,17,150,r * s * c * (k // g) * h * w
+Clip_13.G_swap_6,conv,518400,3,3,96,96,96,8,75,r * s * c * (k // g) * h * w
+BatchNormalization_15.G_swap_6,conv,1382400,1,1,96,24,1,8,75,r * s * c * (k // g) * h * w
+PartSlice_G_IR_22,,0,0,0,0,0,0,0,0,
+Clip_10.G_IR_7,conv,3916800,1,1,16,96,1,17,150,r * s * c * (k // g) * h * w
+Clip_13.G_swap_7,conv,518400,3,3,96,96,96,8,75,r * s * c * (k // g) * h * w
+BatchNormalization_15.G_swap_7,conv,1382400,1,1,96,24,1,8,75,r * s * c * (k // g) * h * w
+PartSlice_G_IR_23,,0,0,0,0,0,0,0,0,
+Clip_10.G_IR_8,conv,3916800,1,1,16,96,1,17,150,r * s * c * (k // g) * h * w
+Clip_13.G_swap_8,conv,518400,3,3,96,96,96,8,75,r * s * c * (k // g) * h * w
+BatchNormalization_15.G_swap_8,conv,1382400,1,1,96,24,1,8,75,r * s * c * (k // g) * h * w
+PartSlice_G_IR_24,,0,0,0,0,0,0,0,0,
+Clip_10.G_IR_9,conv,1152000,1,1,16,96,1,5,150,r * s * c * (k // g) * h * w
+Clip_13.G_swap_9,conv,129600,3,3,96,96,96,2,75,r * s * c * (k // g) * h * w
+BatchNormalization_15.G_swap_9,conv,345600,1,1,96,24,1,2,75,r * s * c * (k // g) * h * w
+BatchNormalization_15,,0,0,0,0,0,0,0,0,
+PartSlice_G_EXPAND_0,,0,0,0,0,0,0,0,0,
+PartSlice_G_SQUEZZE_0,,0,0,0,0,0,0,0,0,
+Clip_18.G_IR_0,conv,5184000,1,1,24,144,1,20,75,r * s * c * (k // g) * h * w
+Clip_21.G_swap_0,conv,1846800,3,3,144,144,144,19,75,r * s * c * (k // g) * h * w
+BatchNormalization_23.G_swap_0,conv,4924800,1,1,144,24,1,19,75,r * s * c * (k // g) * h * w
+Add_24.G_swap_0,add,0,,,,,,19,75,
+PartSlice_G_EXPAND_1,,0,0,0,0,0,0,0,0,
+PartSlice_G_SQUEZZE_1,,0,0,0,0,0,0,0,0,
+Clip_18.G_IR_1,conv,4924800,1,1,24,144,1,19,75,r * s * c * (k // g) * h * w
+Clip_21.G_swap_1,conv,1652400,3,3,144,144,144,17,75,r * s * c * (k // g) * h * w
+BatchNormalization_23.G_swap_1,conv,4406400,1,1,144,24,1,17,75,r * s * c * (k // g) * h * w
+Add_24.G_swap_1,add,0,,,,,,17,75,
+PartSlice_G_EXPAND_2,,0,0,0,0,0,0,0,0,
+PartSlice_G_SQUEZZE_2,,0,0,0,0,0,0,0,0,
+Clip_18.G_IR_2,conv,4924800,1,1,24,144,1,19,75,r * s * c * (k // g) * h * w
+Clip_21.G_swap_2,conv,1652400,3,3,144,144,144,17,75,r * s * c * (k // g) * h * w
+BatchNormalization_23.G_swap_2,conv,4406400,1,1,144,24,1,17,75,r * s * c * (k // g) * h * w
+Add_24.G_swap_2,add,0,,,,,,17,75,
+PartSlice_G_EXPAND_3,,0,0,0,0,0,0,0,0,
+PartSlice_G_SQUEZZE_3,,0,0,0,0,0,0,0,0,
+Clip_18.G_IR_3,conv,4924800,1,1,24,144,1,19,75,r * s * c * (k // g) * h * w
+Clip_21.G_swap_3,conv,1652400,3,3,144,144,144,17,75,r * s * c * (k // g) * h * w
+BatchNormalization_23.G_swap_3,conv,4406400,1,1,144,24,1,17,75,r * s * c * (k // g) * h * w
+Add_24.G_swap_3,add,0,,,,,,17,75,
+PartSlice_G_EXPAND_4,,0,0,0,0,0,0,0,0,
+PartSlice_G_SQUEZZE_4,,0,0,0,0,0,0,0,0,
+Clip_18.G_IR_4,conv,1555200,1,1,24,144,1,6,75,r * s * c * (k // g) * h * w
+Clip_21.G_swap_4,conv,486000,3,3,144,144,144,5,75,r * s * c * (k // g) * h * w
+BatchNormalization_23.G_swap_4,conv,1296000,1,1,144,24,1,5,75,r * s * c * (k // g) * h * w
+Add_24.G_swap_4,add,0,,,,,,5,75,
+Add_24,,0,0,0,0,0,0,0,0,
+PartSlice_G_IR_25,,0,0,0,0,0,0,0,0,
+Clip_27.G_IR_0,conv,5184000,1,1,24,144,1,20,75,r * s * c * (k // g) * h * w
+Clip_30.G_swap_0,conv,492480,3,3,144,144,144,10,38,r * s * c * (k // g) * h * w
+BatchNormalization_32.G_swap_0,conv,1751040,1,1,144,32,1,10,38,r * s * c * (k // g) * h * w
+PartSlice_G_IR_26,,0,0,0,0,0,0,0,0,
+Clip_27.G_IR_1,conv,4924800,1,1,24,144,1,19,75,r * s * c * (k // g) * h * w
+Clip_30.G_swap_1,conv,443232,3,3,144,144,144,9,38,r * s * c * (k // g) * h * w
+BatchNormalization_32.G_swap_1,conv,1575936,1,1,144,32,1,9,38,r * s * c * (k // g) * h * w
+PartSlice_G_IR_27,,0,0,0,0,0,0,0,0,
+Clip_27.G_IR_2,conv,4924800,1,1,24,144,1,19,75,r * s * c * (k // g) * h * w
+Clip_30.G_swap_2,conv,443232,3,3,144,144,144,9,38,r * s * c * (k // g) * h * w
+BatchNormalization_32.G_swap_2,conv,1575936,1,1,144,32,1,9,38,r * s * c * (k // g) * h * w
+PartSlice_G_IR_28,,0,0,0,0,0,0,0,0,
+Clip_27.G_IR_3,conv,5184000,1,1,24,144,1,20,75,r * s * c * (k // g) * h * w
+Clip_30.G_swap_3,conv,492480,3,3,144,144,144,10,38,r * s * c * (k // g) * h * w
+BatchNormalization_32.G_swap_3,conv,1751040,1,1,144,32,1,10,38,r * s * c * (k // g) * h * w
+BatchNormalization_32,,0,0,0,0,0,0,0,0,
+PartSlice_G_EXPAND_5,,0,0,0,0,0,0,0,0,
+PartSlice_G_SQUEZZE_5,,0,0,0,0,0,0,0,0,
+Clip_35.G_IR_0,conv,7938048,1,1,32,192,1,34,38,r * s * c * (k // g) * h * w
+Clip_38.G_swap_0,conv,2166912,3,3,192,192,192,33,38,r * s * c * (k // g) * h * w
+BatchNormalization_40.G_swap_0,conv,7704576,1,1,192,32,1,33,38,r * s * c * (k // g) * h * w
+Add_41.G_swap_0,add,0,,,,,,33,38,
+PartSlice_G_EXPAND_6,,0,0,0,0,0,0,0,0,
+PartSlice_G_SQUEZZE_6,,0,0,0,0,0,0,0,0,
+Clip_35.G_IR_1,conv,1400832,1,1,32,192,1,6,38,r * s * c * (k // g) * h * w
+Clip_38.G_swap_1,conv,328320,3,3,192,192,192,5,38,r * s * c * (k // g) * h * w
+BatchNormalization_40.G_swap_1,conv,1167360,1,1,192,32,1,5,38,r * s * c * (k // g) * h * w
+Add_41.G_swap_1,add,0,,,,,,5,38,
+Add_41,,0,0,0,0,0,0,0,0,
+PartSlice_G_EXPAND_7,,0,0,0,0,0,0,0,0,
+PartSlice_G_SQUEZZE_7,,0,0,0,0,0,0,0,0,
+Clip_44.G_IR_0,conv,7938048,1,1,32,192,1,34,38,r * s * c * (k // g) * h * w
+Clip_47.G_swap_0,conv,2166912,3,3,192,192,192,33,38,r * s * c * (k // g) * h * w
+BatchNormalization_49.G_swap_0,conv,7704576,1,1,192,32,1,33,38,r * s * c * (k // g) * h * w
+Add_50.G_swap_0,add,0,,,,,,33,38,
+PartSlice_G_EXPAND_8,,0,0,0,0,0,0,0,0,
+PartSlice_G_SQUEZZE_8,,0,0,0,0,0,0,0,0,
+Clip_44.G_IR_1,conv,1400832,1,1,32,192,1,6,38,r * s * c * (k // g) * h * w
+Clip_47.G_swap_1,conv,328320,3,3,192,192,192,5,38,r * s * c * (k // g) * h * w
+BatchNormalization_49.G_swap_1,conv,1167360,1,1,192,32,1,5,38,r * s * c * (k // g) * h * w
+Add_50.G_swap_1,add,0,,,,,,5,38,
+Add_50,,0,0,0,0,0,0,0,0,
+PartSlice_G_IR_29,,0,0,0,0,0,0,0,0,
+Clip_53.G_IR_0,conv,7938048,1,1,32,192,1,34,38,r * s * c * (k // g) * h * w
+Clip_56.G_swap_0,conv,558144,3,3,192,192,192,17,19,r * s * c * (k // g) * h * w
+BatchNormalization_58.G_swap_0,conv,3969024,1,1,192,64,1,17,19,r * s * c * (k // g) * h * w
+Clip_61.swap_0,conv,7938048,1,1,64,384,1,17,19,r * s * c * (k // g) * h * w
+PartSlice_G_IR_30,,0,0,0,0,0,0,0,0,
+Clip_53.G_IR_1,conv,1167360,1,1,32,192,1,5,38,r * s * c * (k // g) * h * w
+Clip_56.G_swap_1,conv,65664,3,3,192,192,192,2,19,r * s * c * (k // g) * h * w
+BatchNormalization_58.G_swap_1,conv,466944,1,1,192,64,1,2,19,r * s * c * (k // g) * h * w
+BatchNormalization_58,,0,0,0,0,0,0,0,0,
+Clip_61.swap_1,conv,933888,1,1,64,384,1,2,19,r * s * c * (k // g) * h * w
+BatchNormalization_58.swap,,0,0,0,0,0,0,0,0,
+Clip_64,conv,1247616,3,3,384,384,384,19,19,r * s * c * (k // g) * h * w
+BatchNormalization_66,conv,8871936,1,1,384,64,1,19,19,r * s * c * (k // g) * h * w
+Add_67,add,0,,,,,,19,19,
+Clip_70,conv,8871936,1,1,64,384,1,19,19,r * s * c * (k // g) * h * w
+Clip_73,conv,1247616,3,3,384,384,384,19,19,r * s * c * (k // g) * h * w
+BatchNormalization_75,conv,8871936,1,1,384,64,1,19,19,r * s * c * (k // g) * h * w
+Add_76,add,0,,,,,,19,19,
+Clip_79,conv,8871936,1,1,64,384,1,19,19,r * s * c * (k // g) * h * w
+Clip_82,conv,1247616,3,3,384,384,384,19,19,r * s * c * (k // g) * h * w
+BatchNormalization_84,conv,8871936,1,1,384,64,1,19,19,r * s * c * (k // g) * h * w
+Add_85,add,0,,,,,,19,19,
+Clip_88,conv,8871936,1,1,64,384,1,19,19,r * s * c * (k // g) * h * w
+Clip_91,conv,1247616,3,3,384,384,384,19,19,r * s * c * (k // g) * h * w
+BatchNormalization_93,conv,13307904,1,1,384,96,1,19,19,r * s * c * (k // g) * h * w
+Clip_96,conv,19961856,1,1,96,576,1,19,19,r * s * c * (k // g) * h * w
+Clip_99,conv,1871424,3,3,576,576,576,19,19,r * s * c * (k // g) * h * w
+BatchNormalization_101,conv,19961856,1,1,576,96,1,19,19,r * s * c * (k // g) * h * w
+Add_102,add,0,,,,,,19,19,
+Clip_105,conv,19961856,1,1,96,576,1,19,19,r * s * c * (k // g) * h * w
+Clip_108,conv,1871424,3,3,576,576,576,19,19,r * s * c * (k // g) * h * w
+BatchNormalization_110,conv,19961856,1,1,576,96,1,19,19,r * s * c * (k // g) * h * w
+Add_111,add,0,,,,,,19,19,
+Clip_114,conv,19961856,1,1,96,576,1,19,19,r * s * c * (k // g) * h * w
+Clip_194,conv,1871424,3,3,576,576,576,19,19,r * s * c * (k // g) * h * w
+Conv_195.OC_0,conv,19961856,1,1,576,96,1,19,19,r * s * c * (k // g) * h * w
+Conv_195.OC_1,conv,19961856,1,1,576,96,1,19,19,r * s * c * (k // g) * h * w
+Conv_195,,0,0,0,0,0,0,0,0,
+Clip_187,conv,1871424,3,3,576,576,576,19,19,r * s * c * (k // g) * h * w
+Conv_188.OC_0,conv,19961856,1,1,576,96,1,19,19,r * s * c * (k // g) * h * w
+Conv_188.OC_1,conv,19961856,1,1,576,96,1,19,19,r * s * c * (k // g) * h * w
+Conv_188,,0,0,0,0,0,0,0,0,
+Clip_117,conv,518400,3,3,576,576,576,10,10,r * s * c * (k // g) * h * w
+BatchNormalization_119.OC_0,conv,5529600,1,1,576,96,1,10,10,r * s * c * (k // g) * h * w
+BatchNormalization_119.OC_1,conv,3686400,1,1,576,64,1,10,10,r * s * c * (k // g) * h * w
+BatchNormalization_119,,0,0,0,0,0,0,0,0,
+Clip_122.OC_0,conv,6144000,1,1,160,384,1,10,10,r * s * c * (k // g) * h * w
+Clip_122.OC_1,conv,6144000,1,1,160,384,1,10,10,r * s * c * (k // g) * h * w
+Clip_122.OC_2,conv,3072000,1,1,160,192,1,10,10,r * s * c * (k // g) * h * w
+Clip_122,,0,0,0,0,0,0,0,0,
+Clip_125,conv,864000,3,3,960,960,960,10,10,r * s * c * (k // g) * h * w
+BatchNormalization_127.OC_0,conv,6144000,1,1,960,64,1,10,10,r * s * c * (k // g) * h * w
+BatchNormalization_127.OC_1,conv,6144000,1,1,960,64,1,10,10,r * s * c * (k // g) * h * w
+BatchNormalization_127.OC_2,conv,3072000,1,1,960,32,1,10,10,r * s * c * (k // g) * h * w
+BatchNormalization_127,,0,0,0,0,0,0,0,0,
+Add_128,add,0,,,,,,10,10,
+Clip_131.OC_0,conv,6144000,1,1,160,384,1,10,10,r * s * c * (k // g) * h * w
+Clip_131.OC_1,conv,6144000,1,1,160,384,1,10,10,r * s * c * (k // g) * h * w
+Clip_131.OC_2,conv,3072000,1,1,160,192,1,10,10,r * s * c * (k // g) * h * w
+Clip_131,,0,0,0,0,0,0,0,0,
+Clip_134,conv,864000,3,3,960,960,960,10,10,r * s * c * (k // g) * h * w
+BatchNormalization_136.OC_0,conv,6144000,1,1,960,64,1,10,10,r * s * c * (k // g) * h * w
+BatchNormalization_136.OC_1,conv,6144000,1,1,960,64,1,10,10,r * s * c * (k // g) * h * w
+BatchNormalization_136.OC_2,conv,3072000,1,1,960,32,1,10,10,r * s * c * (k // g) * h * w
+BatchNormalization_136,,0,0,0,0,0,0,0,0,
+Add_137,add,0,,,,,,10,10,
+Clip_140.OC_0,conv,6144000,1,1,160,384,1,10,10,r * s * c * (k // g) * h * w
+Clip_140.OC_1,conv,6144000,1,1,160,384,1,10,10,r * s * c * (k // g) * h * w
+Clip_140.OC_2,conv,3072000,1,1,160,192,1,10,10,r * s * c * (k // g) * h * w
+Clip_140,,0,0,0,0,0,0,0,0,
+Clip_143,conv,864000,3,3,960,960,960,10,10,r * s * c * (k // g) * h * w
+BatchNormalization_145.OC_0,conv,6144000,1,1,960,64,1,10,10,r * s * c * (k // g) * h * w
+BatchNormalization_145.OC_1,conv,6144000,1,1,960,64,1,10,10,r * s * c * (k // g) * h * w
+BatchNormalization_145.OC_2,conv,6144000,1,1,960,64,1,10,10,r * s * c * (k // g) * h * w
+BatchNormalization_145.OC_3,conv,6144000,1,1,960,64,1,10,10,r * s * c * (k // g) * h * w
+BatchNormalization_145.OC_4,conv,6144000,1,1,960,64,1,10,10,r * s * c * (k // g) * h * w
+BatchNormalization_145,,0,0,0,0,0,0,0,0,
+Clip_148.OC_0,conv,6144000,1,1,320,192,1,10,10,r * s * c * (k // g) * h * w
+Clip_148.OC_1,conv,6144000,1,1,320,192,1,10,10,r * s * c * (k // g) * h * w
+Clip_148.OC_2,conv,6144000,1,1,320,192,1,10,10,r * s * c * (k // g) * h * w
+Clip_148.OC_3,conv,6144000,1,1,320,192,1,10,10,r * s * c * (k // g) * h * w
+Clip_148.OC_4,conv,6144000,1,1,320,192,1,10,10,r * s * c * (k // g) * h * w
+Clip_148.OC_5,conv,6144000,1,1,320,192,1,10,10,r * s * c * (k // g) * h * w
+Clip_148.OC_6,conv,4096000,1,1,320,128,1,10,10,r * s * c * (k // g) * h * w
+Clip_148,,0,0,0,0,0,0,0,0,
+Clip_208,conv,1152000,3,3,1280,1280,1280,10,10,r * s * c * (k // g) * h * w
+Conv_209.OC_0,conv,4096000,1,1,1280,32,1,10,10,r * s * c * (k // g) * h * w
+Conv_209.OC_1,conv,4096000,1,1,1280,32,1,10,10,r * s * c * (k // g) * h * w
+Conv_209.OC_2,conv,4096000,1,1,1280,32,1,10,10,r * s * c * (k // g) * h * w
+Conv_209.OC_3,conv,4096000,1,1,1280,32,1,10,10,r * s * c * (k // g) * h * w
+Conv_209.OC_4,conv,4096000,1,1,1280,32,1,10,10,r * s * c * (k // g) * h * w
+Conv_209.OC_5,conv,4096000,1,1,1280,32,1,10,10,r * s * c * (k // g) * h * w
+Conv_209,,0,0,0,0,0,0,0,0,
+Clip_201,conv,1152000,3,3,1280,1280,1280,10,10,r * s * c * (k // g) * h * w
+Conv_202.OC_0,conv,4096000,1,1,1280,32,1,10,10,r * s * c * (k // g) * h * w
+Conv_202.OC_1,conv,4096000,1,1,1280,32,1,10,10,r * s * c * (k // g) * h * w
+Conv_202.OC_2,conv,4096000,1,1,1280,32,1,10,10,r * s * c * (k // g) * h * w
+Conv_202.OC_3,conv,4096000,1,1,1280,32,1,10,10,r * s * c * (k // g) * h * w
+Conv_202.OC_4,conv,4096000,1,1,1280,32,1,10,10,r * s * c * (k // g) * h * w
+Conv_202.OC_5,conv,4096000,1,1,1280,32,1,10,10,r * s * c * (k // g) * h * w
+Conv_202,,0,0,0,0,0,0,0,0,
+Clip_151.OC_0,conv,4096000,1,1,1280,32,1,10,10,r * s * c * (k // g) * h * w
+Clip_151.OC_1,conv,4096000,1,1,1280,32,1,10,10,r * s * c * (k // g) * h * w
+Clip_151.OC_2,conv,4096000,1,1,1280,32,1,10,10,r * s * c * (k // g) * h * w
+Clip_151.OC_3,conv,4096000,1,1,1280,32,1,10,10,r * s * c * (k // g) * h * w
+Clip_151.OC_4,conv,4096000,1,1,1280,32,1,10,10,r * s * c * (k // g) * h * w
+Clip_151.OC_5,conv,4096000,1,1,1280,32,1,10,10,r * s * c * (k // g) * h * w
+Clip_151.OC_6,conv,4096000,1,1,1280,32,1,10,10,r * s * c * (k // g) * h * w
+Clip_151.OC_7,conv,4096000,1,1,1280,32,1,10,10,r * s * c * (k // g) * h * w
+Clip_151,,0,0,0,0,0,0,0,0,
+Clip_154,conv,57600,3,3,256,256,256,5,5,r * s * c * (k // g) * h * w
+Clip_157.OC_0,conv,1433600,1,1,256,224,1,5,5,r * s * c * (k // g) * h * w
+Clip_157.OC_1,conv,1433600,1,1,256,224,1,5,5,r * s * c * (k // g) * h * w
+Clip_157.OC_2,conv,409600,1,1,256,64,1,5,5,r * s * c * (k // g) * h * w
+Clip_157,,0,0,0,0,0,0,0,0,
+Clip_222,conv,115200,3,3,512,512,512,5,5,r * s * c * (k // g) * h * w
+Conv_223.OC_0,conv,1228800,1,1,512,96,1,5,5,r * s * c * (k // g) * h * w
+Conv_223.OC_1,conv,1228800,1,1,512,96,1,5,5,r * s * c * (k // g) * h * w
+Conv_223,,0,0,0,0,0,0,0,0,
+Clip_215,conv,115200,3,3,512,512,512,5,5,r * s * c * (k // g) * h * w
+Conv_216.OC_0,conv,1228800,1,1,512,96,1,5,5,r * s * c * (k // g) * h * w
+Conv_216.OC_1,conv,1228800,1,1,512,96,1,5,5,r * s * c * (k // g) * h * w
+Conv_216,,0,0,0,0,0,0,0,0,
+Clip_160.OC_0,conv,1228800,1,1,512,96,1,5,5,r * s * c * (k // g) * h * w
+Clip_160.OC_1,conv,409600,1,1,512,32,1,5,5,r * s * c * (k // g) * h * w
+Clip_160,,0,0,0,0,0,0,0,0,
+Clip_163,conv,10368,3,3,128,128,128,3,3,r * s * c * (k // g) * h * w
+Clip_166,conv,294912,1,1,128,256,1,3,3,r * s * c * (k // g) * h * w
+Clip_236,conv,20736,3,3,256,256,256,3,3,r * s * c * (k // g) * h * w
+Conv_237,conv,442368,1,1,256,192,1,3,3,r * s * c * (k // g) * h * w
+Clip_229,conv,20736,3,3,256,256,256,3,3,r * s * c * (k // g) * h * w
+Conv_230,conv,442368,1,1,256,192,1,3,3,r * s * c * (k // g) * h * w
+Clip_169,conv,294912,1,1,256,128,1,3,3,r * s * c * (k // g) * h * w
+Clip_172,conv,4608,3,3,128,128,128,2,2,r * s * c * (k // g) * h * w
+Clip_175,conv,131072,1,1,128,256,1,2,2,r * s * c * (k // g) * h * w
+Clip_250,conv,9216,3,3,256,256,256,2,2,r * s * c * (k // g) * h * w
+Conv_251,conv,196608,1,1,256,192,1,2,2,r * s * c * (k // g) * h * w
+Clip_243,conv,9216,3,3,256,256,256,2,2,r * s * c * (k // g) * h * w
+Conv_244,conv,196608,1,1,256,192,1,2,2,r * s * c * (k // g) * h * w
+Clip_178,conv,65536,1,1,256,64,1,2,2,r * s * c * (k // g) * h * w
+Clip_181,conv,576,3,3,64,64,64,1,1,r * s * c * (k // g) * h * w
+Clip_184,conv,8192,1,1,64,128,1,1,1,r * s * c * (k // g) * h * w
+Clip_264,conv,1152,3,3,128,128,128,1,1,r * s * c * (k // g) * h * w
+Concat_270,,0,0,0,0,0,0,0,0,
+Clip_257,conv,1152,3,3,128,128,128,1,1,r * s * c * (k // g) * h * w
+Concat_269,,0,0,0,0,0,0,0,0,
+DetectionPostProcess,,0,0,0,0,0,0,0,0,
+Conv_265,conv,24576,1,1,128,192,1,1,1,r * s * c * (k // g) * h * w
+Conv_258,conv,24576,1,1,128,192,1,1,1,r * s * c * (k // g) * h * w

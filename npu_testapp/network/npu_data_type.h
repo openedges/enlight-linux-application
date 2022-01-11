@@ -2,7 +2,7 @@
 #ifndef __NPU_DATA_TYPE_H__
 #define __NPU_DATA_TYPE_H__
 /*
-    This is generated at 2020-10-21 16:23:40.459416
+    This is generated at 2020-11-23 16:08:02.437505
 */
 
 #include <stdio.h>

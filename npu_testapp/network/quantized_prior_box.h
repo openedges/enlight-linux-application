@@ -1,13 +1,13 @@
 
 /*
-    This is generated at 2020-10-21 16:23:43.010377
+    This is generated at 2020-11-23 16:08:04.705250
     Openedges Enlight post process prior box
 */
 #ifndef __QUANTIZED_PRIOR_BOX_H__
 #define __QUANTIZED_PRIOR_BOX_H__
 
 int log2_prior_box_scale = 8;
-int detector_var[4] = {32, 32, 32, 32};
+int detector_var[4] = {1, 1, 1, 1};
 int detector_th_conf = 128;
 int detector_th_iou = 128;
 int detector_num_class = 20;

@@ -2,13 +2,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifndef enlight_log
+#ifndef TEST_ON_EMBEDDED_LINUX
 extern int _printf(const char *format, ...);
 #   define enlight_log(...)  do { _printf(__VA_ARGS__); } while(0)
+#else
+#   define enlight_log(...)  do { printf(__VA_ARGS__); } while(0)
 #endif
 
 
-void classifier_run(uint8_t *oact_base, int log2_oact_scl, int num_class)
+int classifier_run(void *oact_base, int log2_oact_scl, int num_class)
 {
 
     int i, max_val, max_idx;
@@ -25,6 +27,8 @@ void classifier_run(uint8_t *oact_base, int log2_oact_scl, int num_class)
     }
 
     enlight_log("Top1 class: %d with %d\n", max_idx, max_val);
+
+    return max_idx;
 }
 
 #if 0

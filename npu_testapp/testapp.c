@@ -9,38 +9,43 @@
 #include <sys/time.h>
 #include "npu.h"
 
-#define INPUT_FILE	"/usr/bin/npu/input.ia.bin"
-#define CMD_FILE	"/usr/bin/npu/npu_cmd.bin"
-#define WEIGHT_FILE	"/usr/bin/npu/quantized_network.h.bin"
-#define SCORE_FILE	"/usr/bin/npu/Concat_269.oa.bin"
-#define LOCATION_FILE	"/usr/bin/npu/Concat_270.oa.bin"
+#define INPUT_FILE		"/usr/bin/npu/input.ia.bin"
+#define CMD_FILE		"/usr/bin/npu/npu_cmd.bin"
+#define WEIGHT_FILE		"/usr/bin/npu/quantized_network.h.bin"
+#define SCORE_FILE		"/usr/bin/npu/Concat_270.oa.bin"
+#define LOCATION_FILE		"/usr/bin/npu/Concat_269.oa.bin"
+#define CLASS_GOLDEN_FILE	"/usr/bin/npu/Gemm_151.oa.bin"
+#define DEFAULT_CLASS	1000
 
 #define PAGE_SHIFT 12
 
 #define NSEC_PER_MSEC	1000000L
 
-struct npu_buffer_info {
-	void *buffer;
-	unsigned int size;
-};
-
 void print_usage(void)
 {
 	printf(" usage : options\n"
-		    " -i : input image               , default : %s  \n"
-		    " -c : Network Command file      , default : %s \n"
-		    " -w : Network Weight/bias file  , default : %s \n"
-		    " -l : Concat_0 golden data file , default : %s  \n"
-		    " -s : Concat_1 golden data file , default : %s  \n"
-		    " -v : verification out tensor                   \n"
+		    " -i : input image                , default : %s \n"
+		    " -c : Network Command file       , default : %s \n"
+		    " -w : Network Weight/bias file   , default : %s \n"
+		    " -l : Concat_0 golden data file  , default : %s \n"
+		    " -s : Concat_1 golden data file  , default : %s \n"
+		    " -g : Classifer golden data file , default : %s \n"
+		    " -p : post process \n"
+	   	    " \t1 : NMS , 2 : Classifier , default : NMS \n"	 
+		    " -n : class num                  , default : %d \n"
+		    " -v : verification out tensor & golden data     \n"
 		, INPUT_FILE
 		, CMD_FILE
 		, WEIGHT_FILE
 		, LOCATION_FILE
 		, SCORE_FILE
+		, CLASS_GOLDEN_FILE
+		, DEFAULT_CLASS
 	);
 }
+
 void run_post_process(void *oact_base, void *work_base);
+int classifier_run(u_int8_t *oact_base, int log2_oact_scl, int num_class);
 
 int get_file_size(FILE *fp)
 {
@@ -62,35 +67,41 @@ int main(int argc, char **argv)
 	char *cmd_buf = NULL, *wei_buf = NULL;
 	char *cn1_buf = NULL, *cn0_buf = NULL;
 	char *act_buf = NULL;
-	char *test_buf; // for post process work buffer
+	char *test_buf = NULL; // for post process work buffer
 	
 	int input_size, output_size =0x30000, cmp_size = 0x17700;
-	int ret;
-	FILE *cn1_fp = NULL;
-	FILE *cn0_fp = NULL;
 	char inputfile[128] = INPUT_FILE;
 	char cmdfile[128] = CMD_FILE;
 	char weightfile[128] = WEIGHT_FILE;
 	char score_file[128] = SCORE_FILE;
 	char location_file[128] = LOCATION_FILE;
+	char classfier_file[128] = CLASS_GOLDEN_FILE;
+	int post = 1, class = DEFAULT_CLASS;
 
 	FILE *cmd_fp = NULL;
 	FILE *wei_fp = NULL;
 	FILE *in_fp = NULL;
-	struct npu_buffer_info cmd_info;
+	FILE *cn1_fp = NULL;
+	FILE *cn0_fp = NULL;
 
-	while(-1 != (opt = getopt(argc, argv, "i:c:w:l:s:vh"))) {
+	int ret;
+
+	while(-1 != (opt = getopt(argc, argv, "i:c:w:l:s:vhp:n:"))) {
 		switch (opt) {
-		case 'i':   strcpy(inputfile, optarg);      break;
-		case 'c':   strcpy(cmdfile, optarg);        break;
-		case 'w':   strcpy(weightfile, optarg);     break;
-		case 'l':   strcpy(location_file, optarg);  break;
-		case 's':   strcpy(score_file, optarg);  break;
-		case 'v':   verify = 1;                     break;
-		case 'h':   print_usage(); exit(0);         break;
+		case 'i':   strcpy(inputfile, optarg);      	break;
+		case 'c':   strcpy(cmdfile, optarg);        	break;
+		case 'w':   strcpy(weightfile, optarg);     	break;
+		case 'l':   strcpy(location_file, optarg);  	break;
+		case 's':   strcpy(score_file, optarg); 	break;
+		case 'v':   verify = 1;                 	break;
+		case 'p':   post = atoi(optarg);  		break;
+		case 'n':   class = atoi(optarg);		break;
+		case 'g':   strcpy(classfier_file, optarg);	break;
+		case 'h':   print_usage(); exit(0);		break;
 		} 
 	}	
 	printf("NPU Test Application\n");
+
 
 	fd = open("/dev/npu", O_RDWR);
 	if (fd < 0) {
@@ -152,7 +163,7 @@ int main(int argc, char **argv)
 	msync(out_buf, 512, 1024);
 
 
-	test_buf = (char *) malloc(80 * 1024  * 1024 * sizeof(char));
+	test_buf = (char *) malloc(10 * 1024  * 1024 * sizeof(char));
 
 	
 	printf("write input image\n");
@@ -169,46 +180,69 @@ int main(int argc, char **argv)
 
 	msync(out_buf, 512 * 1024, MS_SYNC);
 
-
+	
 	if (verify) { 
-		cn1_fp = fopen(score_file, "ro");
-		cn0_fp = fopen(location_file, "ro");
+		if (post == POST_NMS) {	
+			cn1_fp = fopen(score_file, "ro");
+			cn0_fp = fopen(location_file, "ro");
 
-		input_size = get_file_size(cn1_fp);
+			input_size = get_file_size(cn1_fp);
 
-		cn1_buf = (char *) malloc(input_size * sizeof(char));
-		ret =  fread(cn1_buf, 1, input_size, cn1_fp);
-		if (ret < 0)
-			printf(" Read fail Concat_1 Golden data\n");
+			cn1_buf = (char *) malloc(input_size * sizeof(char));
+			ret =  fread(cn1_buf, 1, input_size, cn1_fp);
+			if (ret < 0)
+				printf(" Read fail Concat_1 Golden data\n");
 
-		memcpy(test_buf, cn1_buf, input_size);
-		ret = memcmp(cn1_buf, test_buf, input_size);
+			memcpy(test_buf, cn1_buf, input_size);
+			ret = memcmp(cn1_buf, test_buf, input_size);
 
-		input_size = get_file_size(cn0_fp);
+			input_size = get_file_size(cn0_fp);
 
-		cn0_buf = (char *) malloc(input_size  * sizeof(char));
-		ret = fread(cn0_buf, 1, input_size, cn0_fp);
+			cn0_buf = (char *) malloc(input_size  * sizeof(char));
+			ret = fread(cn0_buf, 1, input_size, cn0_fp);
 
-		if (ret < 0)
-			printf(" Read fail Concat_0 Golden data\n");
+			if (ret < 0)
+				printf(" Read fail Concat_0 Golden data\n");
 
-		memcpy(test_buf+0x18700, cn0_buf, input_size);
+			memcpy(test_buf+0x18700, cn0_buf, input_size);
 		
-		ret = memcmp(cn1_buf, out_buf, input_size);
-		if(!ret)
-			printf("Score Compare Success!\n");
-		else
-			printf("Score Compare Fail!\n");
+			ret = memcmp(cn1_buf, out_buf, input_size);
+			if(!ret)
+				printf("Score Compare Success!\n");
+			else
+				printf("Score Compare Fail!\n");
  
-		ret = memcmp(cn0_buf, out_buf + 0x18700, input_size);
-		if(!ret)
-			printf("LOCATION Compare Success!\n");
-		else
-			printf("LOCATION Compare Fail!\n");
+			ret = memcmp(cn0_buf, out_buf + 0x18700, input_size);
+			if(!ret)
+				printf("LOCATION Compare Success!\n");
+			else
+				printf("LOCATION Compare Fail!\n");
+		}
+		 else if (post == POST_CLASS) {
+			cn0_fp = fopen(classfier_file, "ro");
+			if (cn0_fp < 0) 
+				printf("open Godlen data file\n");
+
+			input_size = get_file_size(cn0_fp);
+
+			cn0_buf = (char *) malloc(input_size * sizeof(char));
+			ret =  fread(cn0_buf, 1, input_size, cn0_fp);
+			if (ret < 0)
+				printf(" Read fail Concat_1 Golden data\n");
+
+			ret = memcmp(cn0_buf, out_buf, input_size);
+			if(!ret)
+				printf("Output file Compare OK!\n");
+			else
+				printf("Output file Compare diff!\n");
+		}
 	}
-
-	run_post_process(out_buf,test_buf );
-
+	
+	if (post == POST_NMS)
+		run_post_process((void *)out_buf,test_buf);
+	else if (post == POST_CLASS) 
+		printf("Class : %d\n",classifier_run((u_int8_t *)out_buf, 1000, class));
+	
 	printf("TEST Done!\n");
 
 end:
@@ -240,10 +274,12 @@ end:
 		free(test_buf);
  
 	if (verify) {
-		fclose(cn1_fp);
 		fclose(cn0_fp);
 		free(cn0_buf);
-		free(cn1_buf);
+		if (post == POST_NMS) {
+			free(cn1_buf);
+			fclose(cn1_fp);
+		}
 	}
 
 	close(fd);

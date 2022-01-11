@@ -1,17 +1,40 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
-
-#define TENSOR_BUF_STRIDE 32
+#include "exp_tables.h"
 
 #ifdef TEST_ON_EMBEDDED_LINUX
 #define SUPPORT_MALLOC
-//#define MAKE_EXPTABLE
 #endif
 
 #ifdef TEST_ON_BARE
 
+#endif
+
+
+#ifndef TEST_ON_EMBEDDED_LINUX
+extern int _printf(const char *format, ...);
+#   define enlight_log(...)  do { _printf(__VA_ARGS__); } while(0)
+#else
+#   define enlight_log(...)  do { printf(__VA_ARGS__); } while(0)
+#endif
+
+#ifndef NULL
+#define NULL 0
+#endif
+
+#define TENSOR_BUF_STRIDE 32
+
+#define MIN(A, B) (((A)>(B))?(B):(A))
+#define MAX(A, B) (((A)>(B))?(A):(B))
+
+#define MALLOC_UNIT (2*256*1024)
+#define MALLOC_NUM (8)
+
+#ifndef SUPPORT_MALLOC
+//uint8_t malloc_buf[MALLOC_NUM*(MALLOC_UNIT+4)];
+uint8_t* malloc_buf;
+int malloc_buf_used[MALLOC_NUM];
 #endif
 
 typedef struct
@@ -32,17 +55,6 @@ typedef struct
 
 objs_t objects;
 
-#ifndef MAKE_EXPTABLE
-#   include "exp_tables.h"
-#endif
-
-#ifndef TEST_ON_EMBEDDED_LINUX
-extern int _printf(const char *format, ...);
-#   define enlight_log(...)  do { _printf(__VA_ARGS__); } while(0)
-#else
-#   define enlight_log(...)  do { printf(__VA_ARGS__); } while(0)
-
-#endif
 enum {
     TYPE_UINT8,
     TYPE_INT8,
@@ -106,22 +118,6 @@ typedef struct
 } detection_f_t;
 
 typedef detection_f_t candidate_f_t;
-
-#ifndef NULL
-#define NULL 0
-#endif
-
-#define MIN(A, B) (((A)>(B))?(B):(A))
-#define MAX(A, B) (((A)>(B))?(A):(B))
-
-#define MALLOC_UNIT (2*256*1024)
-#define MALLOC_NUM (8)
-
-#ifndef SUPPORT_MALLOC
-//uint8_t malloc_buf[MALLOC_NUM*(MALLOC_UNIT+4)];
-uint8_t* malloc_buf;
-int malloc_buf_used[MALLOC_NUM]; 
-#endif
 
 uint8_t* enlight_malloc(int size)
 {
@@ -334,72 +330,6 @@ tensor_t* softmax(tensor_t* src)
 
     return dst;
 }
-
-#ifdef MAKE_EXPTABLE
-uint32_t (*build_exp_tables())[256]
-{
-    int i, log2_scale;
-    double e;
-
-    uint32_t (*table)[256];
-
-    table = (uint32_t (*)[256])malloc(3*8*4*256);
-    int min_s = -8;
-    int max_s = 16;
-    int len_s = max_s - min_s;
-
-    for (log2_scale = 0; log2_scale < len_s; log2_scale++) {
-
-        for (i = 0 ; i < 128; i++) {
-            e = round(exp(i / pow(2, log2_scale + min_s)) * 256. + 0.5);
-            table[log2_scale][128+i] = (uint32_t)MIN(e, 4294967295/32);
-        }
-
-        for (i = 128 ; i <  256; i++) {
-            e = round(exp((i-256) / pow(2, log2_scale + min_s)) * 256. + 0.5);
-            table[log2_scale][i-128] = (uint32_t)MIN(e, 4294967295/32);
-        }
-    }
-
-    {
-        FILE* fp;
-        char filename[256];
-   
-        sprintf(filename, "../exp_tables.h");
-        fp = fopen(filename, "w");
-
-        fprintf(fp, "#ifndef __EXP_TABLES_H__\n");
-        fprintf(fp, "#define __EXP_TABLES_H__\n");
-        fprintf(fp, "\n");
-        fprintf(fp, "uint32_t exp_tables[%d][256] = {\n", len_s);
-
-        for (log2_scale=0; log2_scale < len_s; log2_scale++) {
-
-            fprintf(fp, "    /*  %d */\n", log2_scale + min_s);
-            fprintf(fp, "    {\n");
-
-            for (i = 0 ; i < 256 ; i++)
-            {
-                if (i % 16 == 0)
-                    fprintf(fp, "    ");
-                fprintf(fp, "0x%08x, ", table[log2_scale][i]);
-                if (i % 16 == 15)
-                    fprintf(fp, "\n");
-            }
-
-            fprintf(fp, "    },\n");
-        }
-
-        fprintf(fp, "};\n");
-
-        fprintf(fp, "\n");
-        fprintf(fp, "#endif\n");
-
-        fclose(fp);
-    }
-    return table;
-}
-#endif
 
 void build_box_info(box_t* box, tensor_t* loc, tensor_t* prior, int idx)
 {
@@ -654,10 +584,6 @@ int detector(void* prior_buf, void* loc_buf, void* score_buf,
     tensor_t loc;
     tensor_t prior;
 
-#ifdef MAKE_EXPTABLE
-    uint32_t (*exp_tables)[256] = build_exp_tables();
-#endif
-
     int i;
 
 #ifndef SUPPORT_MALLOC
@@ -733,7 +659,7 @@ int detector(void* prior_buf, void* loc_buf, void* score_buf,
 #endif
 
     enlight_log("Postproc start\n");
-    hz = 600 * 1024;
+    hz = 600 * 1000;
     asm volatile ("rdcycle %0" : "=r" (cycle0));
 
     detection_t* r1 = post_process(&score, &loc, &prior, th_conf, th_iou);
@@ -771,12 +697,11 @@ int detector(void* prior_buf, void* loc_buf, void* score_buf,
 
     }
 
-
-#ifdef MAKE_EXPTABLE
-    free(exp_tables);
-#endif
-
+#ifndef TEST_ON_EMBEDDED_LINUX
     return 0;
+#else
+    return &objects;
+#endif
 }
 
 void detector_init(void *work_buf)
@@ -787,6 +712,7 @@ void detector_init(void *work_buf)
 #endif
 }
 
+#ifndef TEST_ON_EMBEDDED_LINUX
 void detector_run(
     uint8_t *prior_box,
     uint8_t *loc_buf_32,
@@ -795,12 +721,27 @@ void detector_run(
     int log2_loc_scl,
     int log2_score_scl,
     int num_class, int stages, int *grids, int* vars,
-    int th_conf, int th_iou, int num_box) 
+    int th_conf, int th_iou, int num_box)
+#else
+objs_t* detector_run(
+    uint8_t *prior_box,
+    uint8_t *loc_buf_32,
+    uint8_t *score_buf_32,
+    int log2_prior_scl,
+    int log2_loc_scl,
+    int log2_score_scl,
+    int num_class, int stages, int *grids, int* vars,
+    int th_conf, int th_iou, int num_box)
+#endif
 {
 
-    log2_loc_scl += 3;
-
+#ifndef TEST_ON_EMBEDDED_LINUX
     detector(prior_box, loc_buf_32, score_buf_32,
              log2_prior_scl, log2_loc_scl, log2_score_scl,
              num_class, (uint8_t)th_conf, (uint8_t)th_iou, num_box);
+#else
+    return detector(prior_box, loc_buf_32, score_buf_32,
+             log2_prior_scl, log2_loc_scl, log2_score_scl,
+             num_class, (uint8_t)th_conf, (uint8_t)th_iou, num_box);
+#endif
 }
