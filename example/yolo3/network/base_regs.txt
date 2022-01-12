@@ -1,0 +1,11 @@
+CODE    81000000                    npu_cmd.bin
+WGHT    84ae93c0          quantized_network.bin
+IACT    8a004940                   input.ia.bin
+BASE0   81000000
+BASE1   84ae93c0
+BASE2   885bc440
+BASE3   8a004940
+BASE4   8a083540
+BASE5   90000000
+BASE6   00000000
+BASE7   00000000
