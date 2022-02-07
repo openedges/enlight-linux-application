@@ -16,6 +16,17 @@ void enlight_free(void* buf)
 }
 #else
 
+#ifdef TEST_ON_EMBEDDED_LINUX
+#ifdef DUMP
+void enlight_dump_data_to_bin(char *fn, void *buf, int size_of_dtype, int num_ele)
+{
+    FILE *fp = fopen(fn, "wb");
+    fwrite(buf, size_of_dtype, num_ele, fp);
+    fclose(fp);
+}
+#endif
+#endif
+
 uint8_t* malloc_buf;
 int malloc_buf_used[MALLOC_NUM];
 
@@ -153,7 +164,7 @@ detection_t* alloc_detection(int max_detection)
     detection->score = (uint16_t*)buf;
 
     buf += sizeof(uint16_t) * max_detection;
-    detection->class = (uint16_t*)buf;
+    detection->cls = (uint16_t*)buf;
 
     detection->n = 0;
 
@@ -193,41 +204,37 @@ void softmax(tensor_t* src, tensor_t* dst, int stride)
     //enlight_detector_dbg_fin();
 
     int i, c;
-    uint64_t  _sum;
-    uint32_t e, sum, e_array[MAX_CLASS_NUM];
+    unsigned long e, sum;
+    unsigned long e_array[MAX_CLASS_NUM];
 
-    // batches, num_boxes, num_classes
     int num_box = src->dims[1];
-    int num_class = src->dims[2];
+    int num_cls = src->dims[2];
 
-    int8_t* class_conf = src->buf;
+    int8_t* cls_conf = src->buf;
     uint32_t* exp_tbl = (uint32_t*)src->exp_tbl;
     uint32_t* conf = (uint32_t*)dst->buf;
 
-    if (num_class > MAX_CLASS_NUM) {
-        enlight_detector_err("error: num_class > %d\n", MAX_CLASS_NUM);
-    }
+    int dst_scl = (int)(dst -> scl);
 
     for (i = 0 ; i < num_box; i++) {
+
         sum = 0;
 
-        for (c = 0 ; c < num_class ; c++) {
-            e = exp_tbl[class_conf[c]];
+        for (c = 0 ; c < num_cls ; c++) {
+            e = exp_tbl[cls_conf[c]];
             e_array[c] = e;
             sum += e;
         }
-        if (sum == 0)
-            continue;
 
-        _sum = (1ULL<<36) / sum;
-        for (c = 0 ; c < num_class ; c++) {
-            uint64_t e_ = (uint64_t)e_array[c];
-            *conf++ = (uint32_t)MIN(((e_ * _sum) >> (36 - 8)), 255);
+        if (sum > 0) {
+            for (c = 0 ; c < num_cls ; c++)
+                *conf++ = (uint32_t)MIN((e_array[c] * dst_scl) / sum, dst_scl - 1);
         }
-        class_conf += stride;
+        cls_conf += stride;
     }
 
-    //enlight_detector_dbg_out();
+    //enlight_detector_dbg_fout();
+
 }
 
 int softmax_with_threshold(
@@ -238,16 +245,15 @@ int softmax_with_threshold(
     float threshold,
     int max_cand_box)
 {
-    //enlight_detector_dbg_fin();
+    enlight_detector_dbg_fin();
 
     int i;
-    int quant_data_type;
 
-    // batches, num_boxes, num_classes
+    // batches, num_boxes, num_clses
     int num_box = src->dims[1];
     int num_cls = src->dims[2];
 
-    act_tensor_t* output_tensor = (act_tensor_t*)src->output_tensor;
+    enlight_act_tensor_t* output_tensor = (enlight_act_tensor_t*)src->output_tensor;
 
     int8_t* cls_conf;
     int8_t* cls_conf_base;
@@ -256,14 +262,19 @@ int softmax_with_threshold(
     uint32_t* cand_conf = (uint32_t*)dst->buf;
 
     int num_cand_box = 0;
+    int dims[4];
 
     if (num_cls > MAX_CLASS_NUM) {
         enlight_detector_err("error: num_cls %d > %d\n", num_cls, MAX_CLASS_NUM);
     }
 
-    cls_conf = (int8_t*)enlight_malloc(enlight_get_qtensor_size(output_tensor));
+    enlight_get_tensor_dimensions(output_tensor, dims);
+
+    cls_conf = (int8_t*)enlight_malloc(dims[1] * dims[2] * dims[3]);
     cls_conf_base = cls_conf;
     enlight_get_tensor_qdata(output_tensor, cls_conf);
+
+    int cand_conf_scl = (int)(dst -> scl);
 
     for (i = 0; i < num_box; i++) {
         unsigned long e, sum;
@@ -279,46 +290,45 @@ int softmax_with_threshold(
             sum += e;
         }
 
-        if (sum == 0)
-            continue;
+        if (sum > 0) {
+            sum_x_th = ((unsigned long)(sum * threshold)) ;
 
-        sum_x_th = ((unsigned long)(sum * threshold)) ;
+            for (c = 1; c < num_cls; c++) {
 
-        for (c = 1; c < num_cls; c++) {
+                if (e_array[c] >= sum_x_th) {
+                    // clear buffer once
+                    if (valid_box == 0) {
+                        int j;
+                        for (j = 0; j < num_cls; j++)
+                            cand_conf[num_cand_box * num_cls + j] = 0;
+                        valid_box = 1;
+                    }
 
-            if (e_array[c] >= sum_x_th) {
-                // clear buffer once
-                if (valid_box == 0) {
-                    int j;
-                    for (j = 0; j < num_cls; j++)
-                        cand_conf[num_cand_box * num_cls + j] = 0;
-                    valid_box = 1;
+                    cand_conf[num_cand_box * num_cls + c] = (uint32_t)MIN((e_array[c] * cand_conf_scl) / sum, cand_conf_scl - 1);
+
+                    //enlight_detector_dbg("cand_conf[%d]: %d\n",
+                    //    num_cand_box * num_cls + c,
+                    //    cand_conf[num_cand_box * num_cls + c]);
                 }
-
-                cand_conf[num_cand_box * num_cls + c] = (uint32_t)MIN((e_array[c] * (1<<16) ) / sum, ((1<<16) - 1));
-
-                enlight_detector_dbg("cand_conf[%d]: %d\n",
-                    num_cand_box * num_cls + c,
-                    cand_conf[num_cand_box * num_cls + c]);
             }
-        }
 
-        if (valid_box) {
-            num_cand_box++;
-            *cand_box_index_buf++ = i;
+            if (valid_box) {
+                num_cand_box++;
+                *cand_box_index_buf++ = i;
+            }
         }
 
         cls_conf += stride;
 
         if (num_cand_box >= max_cand_box) {
-            enlight_detector_dbg("candidate box num over %d > %d\n", num_cand_box, max_cand_box);
+            //enlight_detector_dbg("candidate box num over %d > %d\n", num_cand_box, max_cand_box);
             break;
         }
     }
 
     enlight_free(cls_conf_base);
 
-    //enlight_detector_dbg_fout();
+    enlight_detector_dbg_fout();
 
     return num_cand_box;
 }
@@ -365,7 +375,7 @@ float iou(box_t* l, box_t* r)
 }
 
 
-void nms(detection_t* detection, cand_t* cand, int class, float th)
+void nms(detection_t* detection, cand_t* cand, int cls, float th)
 {
     //enlight_detector_dbg_fin();
 
@@ -380,7 +390,7 @@ void nms(detection_t* detection, cand_t* cand, int class, float th)
     uint16_t* cand_score = cand->score;
 
     box_t* detection_box = detection->box;
-    uint16_t* detection_class = detection->class;
+    uint16_t* detection_cls = detection->cls;
     uint16_t* detection_score = detection->score;
 
     for (i = 0 ; i < num_cand ; i++){
@@ -398,7 +408,7 @@ void nms(detection_t* detection, cand_t* cand, int class, float th)
 
             // add detection result
             copy_box(&detection_box[n], &cand_box[ref_index]);
-            detection_class[n] = class;
+            detection_cls[n] = cls;
             detection_score[n] = score;
 
             deleted[i] = 1;
@@ -423,6 +433,61 @@ void nms(detection_t* detection, cand_t* cand, int class, float th)
     //enlight_detector_dbg_fout();
 }
 
+void fastnms(detection_t* detection, cand_t* cand, float th)
+{
+    int i, j, score, class, n = detection->n;
+    int num_cand = cand->n;
+    int ref_index, test_index;
+
+    int* indice    = (int*)enlight_malloc(sizeof(int)*num_cand);
+    char* deleted  = (char*)enlight_malloc(sizeof(char)*num_cand);
+
+    box_t* cand_box = cand->box;
+    uint16_t* cand_score = cand->score;
+    uint16_t* cand_class = cand->cls;
+
+    box_t* detection_box = detection->box;
+    uint16_t* detection_class = detection->cls;
+    uint16_t* detection_score = detection->score;
+
+    for (i = 0 ; i < num_cand ; i++){
+        indice[i]   = i;
+        deleted[i]  = 0;
+    }
+
+    intro_sort(cand_score, indice, num_cand);
+
+    //indices are sorted ascending order
+    for (i = num_cand - 1; i >=0; i--) {
+        ref_index = indice[i];
+        if (!deleted[i]) {
+            score = cand_score[ref_index];
+            class = cand_class[ref_index];
+
+            // add detection result
+            copy_box(&detection_box[n], &cand_box[ref_index]);
+            detection_class[n] = class;
+            detection_score[n] = score;
+
+            deleted[i] = 1;
+            n++;
+
+            // non-maximum surpression
+            for (j = i - 1; j >= 0; j--) {
+                test_index = indice[j];
+                if (!deleted[j]) {
+                    if (iou(&cand_box[ref_index], &cand_box[test_index]) >= th)
+                        deleted[j] = 1;
+                }
+            }
+        }
+    }
+
+    detection->n = n;
+
+    enlight_free((uint8_t*)indice);
+    enlight_free((uint8_t*)deleted);
+}
 
 void sigmoid(tensor_t *src, tensor_t *dst, int stride)
 {
@@ -430,11 +495,46 @@ void sigmoid(tensor_t *src, tensor_t *dst, int stride)
 
     int i, c;
 
+    // batches, num_boxes, num_clses
+    int num_box = src->dims[1];
+    int num_cls = src->dims[2];
+
+    int8_t* cls_conf = src->buf;
+    uint32_t* sig_tbl = (uint32_t*)src->sig_tbl;
+    uint32_t* conf = (uint32_t*)dst->buf;
+
+    if (num_cls > MAX_CLASS_NUM) {
+        enlight_detector_err("error: num_cls > %d\n", MAX_CLASS_NUM);
+    }
+
+    for (i = 0 ; i < num_box; i++) {
+        //enlight_detector_dbg("\n");
+        for (c = 0 ; c < num_cls ; c++) {
+            uint32_t val = sig_tbl[cls_conf[c]];
+            *conf++ = val;
+            //enlight_detector_dbg("%4d %4d,", cls_conf[c], val);
+        }
+        cls_conf += stride;
+    }
+
+    //enlight_detector_dbg_fout();
+}
+
+
+int sigmoid_with_threshold(tensor_t *src, tensor_t *dst, int *cand_box,
+                           int stride, float threshold,
+                           int has_bg, int max_nms_cand, int sigmoid_applied)
+{
+    int i, c, n = 0;
+
     // batches, num_boxes, num_classes
     int num_box = src->dims[1];
     int num_class = src->dims[2];
 
-    int8_t* class_conf = src->buf;
+    int8_t *cls_conf, *cls_conf_base;
+
+    enlight_act_tensor_t* output_tensor = (enlight_act_tensor_t*)src->output_tensor;
+
     uint32_t* sig_tbl = (uint32_t*)src->sig_tbl;
     uint32_t* conf = (uint32_t*)dst->buf;
 
@@ -442,19 +542,56 @@ void sigmoid(tensor_t *src, tensor_t *dst, int stride)
         enlight_detector_err("error: num_class > %d\n", MAX_CLASS_NUM);
     }
 
-    for (i = 0 ; i < num_box; i++) {
-        enlight_detector_dbg("\n");
-        for (c = 0 ; c < num_class ; c++) {
-            uint32_t val = sig_tbl[class_conf[c]];
-            *conf++ = val;
-            enlight_detector_dbg("%4d %4d,", class_conf[c], val);
+    int dims[4];
+    enlight_get_tensor_dimensions(output_tensor, dims);
+
+    cls_conf = (int8_t*)enlight_malloc(dims[1] * dims[2] * dims[3]);
+    cls_conf_base = cls_conf;
+    enlight_get_tensor_qdata(output_tensor, cls_conf);
+
+    uint32_t sig_value;
+    uint32_t sig_value_buffer[MAX_CLASS_NUM];
+    int valid_box;
+
+    int th_ = (int)(threshold * dst->scl);
+
+    for (i = 0; i < num_box; i++) {
+        valid_box = 0;
+
+        for (c = has_bg; c < num_class ; c++) {
+            sig_value = cls_conf[c];
+            if (!sigmoid_applied)
+                sig_value = sig_tbl[cls_conf[c]];
+
+            if (sig_value >= th_) {
+                valid_box = 1;
+            }
+            else {
+                // accordance with dumping tensor from python
+                sig_value = 0;
+            }
+
+            sig_value_buffer[c] = sig_value;
         }
-        class_conf += stride;
+
+        if (valid_box) {
+
+            for (c = has_bg; c < num_class ; c++)
+                conf[n * num_class + c] = sig_value_buffer[c];
+
+            cand_box[n++] = i;
+        }
+
+        cls_conf += stride;
+
+        if (n == max_nms_cand)
+            break;
     }
 
-    //enlight_detector_dbg_fout();
-}
+    enlight_free(cls_conf_base);
 
+    return n;
+}
 
 void heap_sort(const uint16_t* unsorted, int* indices, int N)
 {

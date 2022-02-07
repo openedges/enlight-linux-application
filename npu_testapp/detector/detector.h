@@ -49,8 +49,6 @@
 #   define  NULL    0
 #endif
 
-#define MAX_CANDIDATE_BOX   16384  // yolov3 max default box num : 13x13x3 = 507, 26x26x3 = 2028, 52x52x3 = 8112 => 10647
-//#define MAX_DETECT_BOX      256   // max detected box num
 #define MAX_STACK_SIZE      64    //Max recursion to Max_CANDIDATE_BOX 2*log2(16384) * element(2)
 #define INSERTION_SORT_SIZE 16
 
@@ -58,10 +56,10 @@
 #define free_candidate(candidate) free_detection(candidate)
 
 typedef struct {
-    act_tensor_t* output_tensor;
+    enlight_act_tensor_t* output_tensor;
     void* buf;
 
-    int scl;
+    float scl;
 
     int dtype;
     int num_ele;
@@ -83,7 +81,7 @@ typedef struct {
 typedef struct {
     box_t* box;
 
-    uint16_t* class;
+    uint16_t* cls;
     uint16_t* score;
 
     int n;
@@ -101,7 +99,7 @@ typedef struct
 {
     box_f_t* box;
 
-    uint8_t* class;
+    uint8_t* cls;
     float* score;
 
     int n;
@@ -115,6 +113,7 @@ void enlight_init_mem(void *buf);
 #endif
 void* enlight_malloc(int size);
 void enlight_free(void* buf);
+void enlight_dump_data_to_bin(char *fn, void *buf, int size_of_dtype, int num_ele);
 tensor_t* alloc_tensor(int dtype, int num_dim, int* dims, float scl);
 void free_tensor(tensor_t* tensor);
 detection_t* alloc_detection(int detect_num);
@@ -128,8 +127,12 @@ int softmax_with_threshold(tensor_t* src,
                            float threshold,
                            int max_nms_cand);
 float iou(box_t* l, box_t* r);
-void nms(detection_t* detection, cand_t* cand, int class, float threshold);
+void nms(detection_t* detection, cand_t* cand, int cls, float threshold);
+void fastnms(detection_t* detection, cand_t* cand, float th);
 void sigmoid(tensor_t *src, tensor_t *dst, int stride);
+int sigmoid_with_threshold(tensor_t *src, tensor_t *dst, int *cand_box,
+                           int stride, float threshold,
+                           int has_bg, int max_nms_cand, int sigmoid_applied);
 void intro_sort(const uint16_t* unsorted, int* indices, int N);
 
 #endif /*__ENLIGHT_DETECTOR_H__*/

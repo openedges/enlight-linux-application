@@ -28,39 +28,75 @@ extern int _printf(const char *format, ...);
 
 /** @brief Return network name.
  *
- *      Network name, instance->network_name is file name of quantized enlight.
+ *      Network name,  file name of quantized enlight.
  *
  *  @param instance Network instance.
  *  @return         String of network name.
  */
-char* enlight_get_network_name(network_t *instance);
+char* enlight_get_name(enlight_network_t *inst);
 
-/** @brief Set network buf bases
+/** @brief Return post-process type
  *
- *      ext_base_addr[0] = base[0]; # Code
- *      ext_base_addr[1] = base[1]; # Weight
- *      ext_base_addr[2] = base[2]; # Work
- *      ext_base_addr[3] = base[3]; # Input
- *      ext_base_addr[4] = base[4]; # Output
+ *     post-process type 
+ *          ENLIGHT_POST_DETECTOR
+ *          ENLIGHT_POST_CLASSIFIER
+ *       or ENLIGHT_POST_NONE
  *
  *  @param instance Network instance.
- *  @param base_addrs base buffer base[8]
+ *  @return         post-process type
  */
-void enlight_set_buf_bases(network_t *instance, void* bases[8]);
+enlight_postproc_t
+        enlight_get_post_type(enlight_network_t *inst);
 
-/** @brief Get network buf base
- *
- *      ext_base_addr[0]: Code
- *      ext_base_addr[1]: Weight
- *      ext_base_addr[2]: Work
- *      ext_base_addr[3]: Input
- *      ext_base_addr[4]: Output
+/** @brief Return input image C, H, W
  *
  *  @param instance Network instance.
- *  @param idx      base index
- *  @return  base_addrs base buffer base
+ *  @return         img_sizes address
  */
-void* enlight_get_buf_base(network_t *instance, int idx);
+int*    enlight_get_img_sizes(enlight_network_t *inst);
+
+/** @brief Return output tensors number
+ *
+ *  @param instance Network instance.
+ *  @return         output tensor nubmer
+ */
+int     enlight_get_output_tensor_num(enlight_network_t *inst); 
+
+/** @brief Return output tensors address
+ *
+ *  @param instance Network instance.
+ *  @return         addr of output_tensors[idx]
+ */
+enlight_act_tensor_t *
+        enlight_get_output_tensor(enlight_network_t *inst, int idx); 
+
+/** @brief Return tensor dims N, H,  W,  C
+ *
+ *  @param tensor      tensor
+ *  @return            tensor dimension N, H, W, C
+ */
+void    enlight_get_tensor_dimensions(enlight_act_tensor_t *t, int dims[4]);
+
+/** @brief Return tensor size
+ *
+ *  @param tensor      tensor
+ *  @return            tensor size = (1 * H * W * aligend(C, 32))
+ */
+int     enlight_get_tensor_size(enlight_act_tensor_t *t);
+
+/** @brief Return tensor buffer addr
+ *
+ *  @param tensor      tensor
+ *  @return            tensor addr = output buffer base + off
+ */
+void*   enlight_get_tensor_addr(enlight_act_tensor_t *t);
+
+/** @brief Return tensor buffer offset from output buffer base
+ *
+ *  @param tensor      tensor
+ *  @return            tensor offset
+ */
+int     enlight_get_tensor_offset(enlight_act_tensor_t *t);
 
 /** @brief Return int8_t quantized tensor data w/ dims=[H, W, C]
  *
@@ -72,7 +108,7 @@ void* enlight_get_buf_base(network_t *instance, int idx);
  *  @param tensor      source tensor
  *  @param quant_data  target buffer
  */
-void  enlight_get_tensor_qdata(act_tensor_t *tensor, int8_t *quant_data);
+void    enlight_get_tensor_qdata(enlight_act_tensor_t *t, int8_t *quant_data);
 
 /** @brief Return float tensor data w/ dims=[H, W, C]
  *
@@ -84,13 +120,13 @@ void  enlight_get_tensor_qdata(act_tensor_t *tensor, int8_t *quant_data);
  *  @param tensor      source tensor
  *  @param quant_data  target buffer
  */
-void  enlight_get_tensor_data(act_tensor_t *tensor, float *de_quant_data);
+void    enlight_get_tensor_data(enlight_act_tensor_t *t, float *de_quant_data);
 
 /** @brief Return float tensor data w/ dims=[H, W, C]
  *  @param tensor      source tensor
  *  @return            float tensor's scale
  */
-float enlight_get_tensor_scale(act_tensor_t *tensor);
+float   enlight_get_tensor_scale(enlight_act_tensor_t *t);
 
 /** @brief Return sigle int8_t quantized tensor data
  *
@@ -102,7 +138,7 @@ float enlight_get_tensor_scale(act_tensor_t *tensor);
  *  @param c_off       offset in channel
  *  @return            quantized data        
  */
-int8_t enlight_get_tensor_qdata_by_index(act_tensor_t *tensor, int y_off, int x_off, int c_off);
+int8_t  enlight_get_tensor_qdata_by_off(enlight_act_tensor_t *t, int y_off, int x_off, int c_off);
 
 /** @brief Return single float a tensor data
  *
@@ -114,35 +150,28 @@ int8_t enlight_get_tensor_qdata_by_index(act_tensor_t *tensor, int y_off, int x_
  *  @param c_off       offset in channel
  *  @return            de-quantized data        
  */
-float enlight_get_tensor_data_by_index(act_tensor_t *tensor, int y_off, int x_off, int c_off);
-
-/** @brief Return tensor data size H x W x C
- *
- *  @param tensor      tensor
- *  @return            size
- */
-int   enlight_get_qtensor_size(act_tensor_t *tensor);
+float   enlight_get_tensor_data_by_off(enlight_act_tensor_t *t, int y_off, int x_off, int c_off);
 
 /** @brief Return tensor data type
  *
  *  @param tensor      tensor
  *  @return data type in enlight_data_t
  */
-int enlight_get_tensor_quant_data_type(act_tensor_t *tensor);
+int enlight_get_tensor_quant_data_type(enlight_act_tensor_t *t);
 
 /** @brief Return code/weight/input/output/work buffer size
  *
  *  @param instance Network instance.
+ *  @param buf_type enlight_buf_base_t type for 
+                    code, weight, work, input, or output buffer
  *  @return         byte size
  */
-int enlight_get_code_buf_size(network_t *instance);
-int enlight_get_weight_buf_size(network_t *instance);
-int enlight_get_input_buf_size(network_t *instance);
-int enlight_get_output_buf_size(network_t *instance);
-int enlight_get_work_buf_size(network_t *instance);
+int enlight_get_buf_size(enlight_network_t *inst, enlight_buf_base_t buf_type);
 
+#ifdef BARE_METAL_FW_DEV
 // APIs only for ENLIGHT toolkit developer
-uint8_t* enlight_get_code_base(network_t *instance);
+uint8_t* enlight_get_code_base(enlight_network_t *inst);
+#endif
 
 
 /*************************************************************************/
@@ -151,52 +180,45 @@ uint8_t* enlight_get_code_base(network_t *instance);
 
 /** @brief Return float type value of Confidence threshold
  *
- *  @param  param ssd_detector instance address
+ *  @param  param ssd_detector param address
  *  @return       float type value
  */
-float enlight_ssd_get_thres_conf(ssd_detector_t* param);
+float enlight_ssd_get_thres_conf(enlight_ssd_detector_t* param);
 
 /** @brief Return float type value of IOU threshold
  *
- *  @param  param ssd_detector instance address
+ *  @param  param ssd_detector param address
  *  @return       float type value
  */
-float enlight_ssd_get_thres_iou(ssd_detector_t* param);
+float enlight_ssd_get_thres_iou(enlight_ssd_detector_t* param);
 
 /** @brief Return class number
  *
- *  @param  param ssd_detector instance address
+ *  @param  param ssd_detector param address
  *  @return       class number
  */
-int enlight_ssd_get_num_class(ssd_detector_t* param);
+int enlight_ssd_get_num_class(enlight_ssd_detector_t* param);
 
 /** @brief Return box number
  *
- *  @param  param ssd_detector instance address
+ *  @param  param ssd_detector param address
  *  @return       box number
  */
-int enlight_ssd_get_num_box(ssd_detector_t* param);
-
-/** @brief Return input image H, W
- *
- *  @param  param ssd_detector instance address
- *  @return img_sizes address
- */
-int* enlight_ssd_get_img_sizes(ssd_detector_t* param);
+int enlight_ssd_get_num_box(enlight_ssd_detector_t* param);
 
 /** @brief Return default box scale_1024
  *
- *  @param  param ssd_detector instance address
+ *  @param  param ssd_detector param address
  *  @return       scale
  */
-float enlight_ssd_get_default_box_scale(ssd_detector_t* ssd_param);
+float enlight_ssd_get_default_box_scale(enlight_ssd_detector_t* ssd_param);
 
 /** @brief Return default box buffer addr
  *
- *  @param  param ssd_detector instance address
+ *  @param  param ssd_detector param address
  *  @return       buffer addr
  */
-uint8_t* enlight_ssd_get_default_box_buf_addr(ssd_detector_t* param);
+uint8_t* enlight_ssd_get_default_box_buf_addr(enlight_ssd_detector_t* param);
 
 /** @brief Return default box address
  *      Process as followings steps.
@@ -205,51 +227,123 @@ uint8_t* enlight_ssd_get_default_box_buf_addr(ssd_detector_t* param);
  *
  *      Alloc/free buffer by Caller
  *
- *  @param  param ssd_detector instance address
+ *  @param  param ssd_detector param address
  *  @param  buf   float type buffer
  */
-void      enlight_ssd_get_float_default_boxes(ssd_detector_t* param, float* buf);
+void      enlight_ssd_get_float_default_boxes(enlight_ssd_detector_t* param, float* buf);
 
-float     enlight_ssd_get_conf_scales(ssd_detector_t* param, int idx);
-float     enlight_ssd_get_loc_scales(ssd_detector_t* param, int idx);
+/** @brief Return conf tensor scale
+ *
+ *  @param  param ssd_detector param address
+ *  @param  idx   conf tensor index
+ */
+float     enlight_ssd_get_conf_scales(enlight_ssd_detector_t* param, int idx);
 
-uint32_t* enlight_ssd_get_conf_exp_table(ssd_detector_t* param, int idx);
-uint32_t* enlight_ssd_get_loc_exp_table(ssd_detector_t* param, int idx);
-objs_t*   enlight_ssd_get_objs_buf_base(ssd_detector_t* param);
+/** @brief Return loc tensor scale
+ *
+ *  @param  param ssd_detector param address
+ *  @param  idx   loc tensor index
+ */
+float     enlight_ssd_get_loc_scales(enlight_ssd_detector_t* param, int idx);
+
+/** @brief Return conf sigmoid/softmax look-up table address
+ *
+ *  @param  param ssd_detector param address
+ *  @param  idx   conf tensor index
+ */
+uint32_t* enlight_ssd_get_conf_logistic_table(enlight_ssd_detector_t* param, int idx);
+
+/** @brief Return loc exponent look-up table address
+ *
+ *  @param  param ssd_detector param address
+ *  @param  idx   loc tensor index
+ */
+uint32_t* enlight_ssd_get_loc_exp_table(enlight_ssd_detector_t* param, int idx);
+
+/** @brief Return detected objects result address.
+ *
+ *          Detected objects of final output of SSD post-process
+ *
+ *  @param  param ssd_detector param address
+ *  @param  idx   loc tensor index
+ */
+enlight_objs_t*   enlight_ssd_get_objs_buf_base(enlight_ssd_detector_t* param);
 
 /** @brief Return loc tensors addr
  *
- *  @param  param       ssd_detector instance address
+ *  @param  param ssd_detector param address
  *  @param  tensor_buf  tensor base return buffer
  *  @return       tensors number
  */
-int enlight_ssd_get_loc_tensors(ssd_detector_t* param, act_tensor_t ***tensor_buf);
+int enlight_ssd_get_loc_tensors(enlight_ssd_detector_t* param, enlight_act_tensor_t ***tensor_buf);
 
 /** @brief Return conf tensors addr
  *
- *  @param  param       ssd_detector instance address
+ *  @param  param ssd_detector param address
  *  @param  tensor_buf  tensor base return buffer
  *  @return       tensors number
  */
-int enlight_ssd_get_conf_tensors(ssd_detector_t* param, act_tensor_t ***tensor_buf);
+int enlight_ssd_get_conf_tensors(enlight_ssd_detector_t* param, enlight_act_tensor_t ***tensor_buf);
+
+/** @brief Return Is background class in classes
+ *
+ *  @param  param ssd_detector param address
+ *  @return       background class in classes
+ */
+int enlight_ssd_get_bg_in_cls(enlight_ssd_detector_t* param);
+
+/** @brief Return logistic type
+ *
+ *  @param  param ssd_detector param address
+ *  @return       logistic type
+ */
+enlight_logistic_t enlight_ssd_get_logistic(enlight_ssd_detector_t* param);
+
+/** @brief Return nms method type
+ *
+ *  @param  param ssd_detector param address
+ *  @return       nms method type
+ */
+enlight_nms_t enlight_ssd_get_nms_method(enlight_ssd_detector_t* param);
+
 
 /*************************************************************************/
 /* YOLO post process extension APIs                                      */
 /*************************************************************************/
-int       enlight_yolo_get_softmax_use(yolo_detector_t* p);
-int       enlight_yolo_get_output_tensors(yolo_detector_t* p, act_tensor_t ***tensor_buf);
-float     enlight_yolo_get_thres_conf(yolo_detector_t* p);
-float     enlight_yolo_get_thres_iou(yolo_detector_t* p);
-int       enlight_yolo_get_num_class(yolo_detector_t* p);
-int*      enlight_yolo_get_num_grids(yolo_detector_t* p);
-int       enlight_yolo_get_num_anchor(yolo_detector_t* p);
-int*      enlight_yolo_get_img_sizes(yolo_detector_t* p);
-float     enlight_yolo_get_default_box_scale(yolo_detector_t* p);
-uint8_t*  enlight_yolo_get_default_box_buf_addr(yolo_detector_t* p);
-void      enlight_yolo_get_float_default_boxes(yolo_detector_t* p, float* buf);
-float     enlight_yolo_get_output_scales(yolo_detector_t* p, int output_index);
-uint32_t* enlight_yolo_get_output_exp_table(yolo_detector_t* p, int output_index);
-uint32_t* enlight_yolo_get_output_sig_table(yolo_detector_t* p, int output_index);
-objs_t*   enlight_yolo_get_objs_buf_base(yolo_detector_t* p);
+int       enlight_yolo_get_softmax_use(enlight_yolo_detector_t* p);
+int       enlight_yolo_get_loc_tensors(enlight_yolo_detector_t* p, enlight_act_tensor_t ***tensor_buf);
+int       enlight_yolo_get_conf_tensors(enlight_yolo_detector_t* p, enlight_act_tensor_t ***tensor_buf);
+float     enlight_yolo_get_thres_conf(enlight_yolo_detector_t* p);
+float     enlight_yolo_get_thres_iou(enlight_yolo_detector_t* p);
+int       enlight_yolo_get_num_class(enlight_yolo_detector_t* p);
+int*      enlight_yolo_get_num_grids(enlight_yolo_detector_t* p);
+int       enlight_yolo_get_num_anchor(enlight_yolo_detector_t* p);
+float     enlight_yolo_get_default_box_scale(enlight_yolo_detector_t* p);
+uint8_t*  enlight_yolo_get_default_box_buf_addr(enlight_yolo_detector_t* p);
+void      enlight_yolo_get_float_default_boxes(enlight_yolo_detector_t* p, float* buf);
+float     enlight_yolo_get_output_scales(enlight_yolo_detector_t* p, int output_index);
+uint32_t* enlight_yolo_get_output_exp_table(enlight_yolo_detector_t* p, int output_index);
+uint32_t* enlight_yolo_get_output_sig_table(enlight_yolo_detector_t* p, int output_index);
+enlight_objs_t*   enlight_yolo_get_objs_buf_base(enlight_yolo_detector_t* p);
+
+/** @brief Return whether Yolo outputs is divided to conf, loc or not
+ *
+ *  @param  param       yolo_detector parm address
+ *  @return       Return 1 if outputs of Yolo network is divided to conf, loc else 0
+ */
+int       enlight_yolo_get_out_tensor_divided(enlight_yolo_detector_t* param);
+
+/** @brief Return whether sigmoid has been applied to Yolo Network outputs
+ *
+ *  @param  param       yolo_detector instance address
+ *  @return       Return 1 if sigmoid has been applied to Yolo Network outputs else 0
+ */
+int       enlight_yolo_get_sigmoid_applied(enlight_yolo_detector_t* param);
+
+/*************************************************************************/
+/* Classification post process extension APIs                                      */
+/*************************************************************************/
+int       enlight_class_get_output_tensors(enlight_classification_t* p, enlight_act_tensor_t ***tensor_buf);
+int       enlight_class_get_num_class(enlight_classification_t* p);
 
 #endif /*__ENLIGHT_NETWORK__*/

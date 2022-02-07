@@ -7,7 +7,7 @@
 #endif
 
 #ifdef GDB_FW_DEBUG
-extern objs_t gdb_fw_objects;
+extern enlight_objs_t gdb_fw_objects;
 #endif
 
 static void build_box_info(
@@ -19,9 +19,9 @@ static void build_box_info(
 {
     enlight_detector_dbg_fin();
 
-    enlight_detector_dbg("idx:          %d\n", idx);
-    enlight_detector_dbg("prior base:   0x%08x\n", prior);
-    enlight_detector_dbg("num_grid:     %d %d\n", num_grid[0], num_grid[1]);
+    //enlight_detector_dbg("idx:          %d\n", idx);
+    //enlight_detector_dbg("prior base:   0x%08x\n", prior);
+    //enlight_detector_dbg("num_grid:     %d %d\n", num_grid[0], num_grid[1]);
 
     int loc_idx = idx * 4;
     int box_idx = idx * 4;
@@ -46,8 +46,8 @@ static void build_box_info(
     // (x / num_grid)
     // (y / num_grid)
     uint32_t compensation_bit = 16;
-    uint32_t compensation_x = (1 << compensation_bit) / num_grid[0];
-    uint32_t compensation_y = (1 << compensation_bit) / num_grid[1];
+    uint32_t compensation_x = (1 << compensation_bit) / num_grid[1];
+    uint32_t compensation_y = (1 << compensation_bit) / num_grid[0];
     uint32_t temp;
 
     temp = (uint32_t)x * compensation_x;
@@ -89,40 +89,40 @@ static void build_box_info(
 }
 
 
-// input: { batch, boxes, classes }
+// input: { batch, boxes, clses }
 // output: { boxes { coordinate, score } }
 static void thresholding(tensor_t** score, cand_t* cand,
                          tensor_t* loc, tensor_t* prior,
-                         int class, float th, int* num_grids, int num_output)
+                         int cls, float th, int* num_grids, int num_output)
 {
     enlight_detector_dbg_fin();
 
     uint32_t* _score;
     int num_box;
-    int num_class = score[0]->dims[2];
+    int num_cls = score[0]->dims[2];
 
     int i, box;
     int n = 0;
 
-    // enlight_detector_dbg("class:            %d\n", class);
+    // enlight_detector_dbg("cls:            %d\n", cls);
     // enlight_detector_dbg("th * 1024:        %d\n", (int)(th * 256));
     // enlight_detector_dbg("num_grids:        %d %d %d %d %d %d\n", 
     //     num_grids[0], num_grids[1],
     //     num_grids[2], num_grids[3],
     //     num_grids[4], num_grids[5]);
-    // enlight_detector_dbg("num_output:       %d\n", num_output);
+    // enlight_detector_dbg("num_output:       %d\n", num_loc);
 
     for (i = 0; i < num_output; i++) {
-        _score = (uint32_t*)score[i]->buf + class;
+        _score = (uint32_t*)score[i]->buf + cls;
         num_box = score[i]->dims[1];
 
-        for (box = 0; box < num_box; box++, _score += num_class) {
-            if (*_score >= ((int)(th * 256 * 256))) {
+        for (box = 0; box < num_box; box++, _score += num_cls) {
+            if (*_score >= ((uint32_t)(th * 256 * 256))) {
 
                 enlight_detector_dbg("score:thres = %8d:%8d", *_score, ((int)(th * 256 * 256)));
 
                 build_box_info(&cand->box[n], &loc[i], &prior[i], box, &num_grids[i*2]);
-                cand->class[n] = class;
+                cand->cls[n] = cls;
                 cand->score[n] = *_score;
                 n++;
             }
@@ -143,17 +143,18 @@ static detection_t* yolo_post_process(
     float       th_nms,
     int*        num_grids,
     int         num_output,
-    int         softmax_use
+    int         softmax_use,
+    int         sigmoid_applied
 )
 {
     enlight_detector_dbg_fin();
 
-    // enlight_detector_dbg("th_conf * 1024:    %8d\n", (int)(1024 * th_conf));
-    // enlight_detector_dbg("th_nms  * 1024:    %8d\n", (int)(1024 * th_nms));
-    // enlight_detector_dbg("num_grid      :    %8d,%8d,%8d,%8d,%8d,%8d\n",
-    //     num_grids[0], num_grids[1], num_grids[2], num_grids[3],
-    //     num_grids[4], num_grids[5]);
-    // enlight_detector_dbg("softmax_use   :    %8d\n", softmax_use);
+    //enlight_detector_dbg("th_conf * 1024:    %8d\n", (int)(1024 * th_conf));
+    //enlight_detector_dbg("th_nms  * 1024:    %8d\n", (int)(1024 * th_nms));
+    //enlight_detector_dbg("num_grid      :    %8d,%8d,%8d,%8d,%8d,%8d\n",
+    //    num_grids[0], num_grids[1], num_grids[2], num_grids[3],
+    //    num_grids[4], num_grids[5]);
+    //enlight_detector_dbg("softmax_use   :    %8d\n", softmax_use);
 
     detection_t* detection;
     int i, j, c;
@@ -170,16 +171,38 @@ static detection_t* yolo_post_process(
     detection = alloc_detection(num_ele);
     num_cls = score[0].dims[2];
 
+    const int conf_obj_scl = 65536;
+    int regression_scl = 256;
+    int obj_scl = 256;
+
+    if (sigmoid_applied) {
+        regression_scl = 64;
+        obj_scl = 64;
+    }
+
     for(i =0; i < num_output; i++) {
         num_box = score[i].dims[1];
         total_num_box += num_box;
 
         conf[i] = alloc_tensor(ENLIGHT_DTYPE_UINT32, score[i].num_dim, score[i].dims, 0);
 
-        if (softmax_use)
-            softmax(&score[i], conf[i], score[i].dims[2]);
-        else
-            sigmoid(&score[i], conf[i], score[i].dims[2]);
+        if (sigmoid_applied) {
+            uint32_t* dst = (uint32_t*)conf[i]->buf;
+            uint8_t* src = (uint8_t*)score[i].buf;
+            for(j = 0; j < score[i].num_ele; j++)
+                dst[j] = src[j];
+        }
+        else {
+            if (softmax_use) {
+                softmax(&score[i], conf[i], score[i].dims[2]);
+                regression_scl = 65536;
+            }
+            else {
+                sigmoid(&score[i], conf[i], score[i].dims[2]);
+                regression_scl = 256;
+            }
+
+        }
 
         conf_buf = conf[i]->buf;
         obj_buf = (uint32_t*)obj[i].buf;
@@ -193,8 +216,13 @@ static detection_t* yolo_post_process(
 
                 conf_obj = conf_val * obj_val;
 
-                // enlight_detector_dbg("[box %2d cls %4d] %8d * %8d = %8d\n",
-                //     j, c, conf_val, obj_val, conf_obj);
+                if (conf_obj_scl < regression_scl * obj_scl)
+                    conf_obj /= (regression_scl * obj_scl) / conf_obj_scl;
+                else
+                    conf_obj *= conf_obj_scl / (regression_scl * obj_scl);
+
+                //enlight_detector_dbg("[box %2d cls %4d] %8d * %8d = %8d\n",
+                //    j, c, conf_val, obj_val, conf_obj);
 
                 *conf_buf = conf_obj; 
 
@@ -215,12 +243,12 @@ static detection_t* yolo_post_process(
             int i;
             for (i = 0; i < cand->n; i++) {
                 box_t* box = &cand->box[i];
-                int class = cand->class[i];
+                int cls = cand->cls[i];
                 int score = cand->score[i];
 
-                enlight_detector_dbg("x%4d %4d y%4d %4d: cls %4d scr %4d\n",
-                box->x_min, box->x_max, box->y_min, box->y_max,
-                class, score);
+                //enlight_detector_dbg("x%4d %4d y%4d %4d: cls %4d scr %4d\n",
+                //box->x_min, box->x_max, box->y_min, box->y_max,
+                //cls, score);
             }
         }
 
@@ -238,15 +266,19 @@ static detection_t* yolo_post_process(
 }
 
 static void get_candidate(
-    act_tensor_t**  outputs,
+    enlight_act_tensor_t**  loc_outputs, /* loc_outputs if loc and conf tensor buffer 
+                                            if out_tensor_divided is = 0*/
+    enlight_act_tensor_t**  conf_outputs,
     int**           cand_bufs,
     int*            cand_nums,
     uint32_t**      sig_tbls,
     int             num_output,
     int*            num_grids,
     int             num_anchor,
-    int             num_class,
-    float           th_conf
+    int             num_cls,
+    float           th_conf,
+    int             out_tensor_divided,
+    int             sigmoid_applied
     )
 {
     enlight_detector_dbg_fin();
@@ -255,20 +287,25 @@ static void get_candidate(
     const int obj_len = 1;
     int box_data_len;
     int cand_cnt;
-    int output_idx;
+    int output_idx, conf_output_idx;
+    int i;
 
-    enlight_detector_dbg("outputs:          %08x %08x %08x\n",
-        outputs[0], outputs[1], outputs[2]);
     enlight_detector_dbg("num_output:       %8d\n", num_output);
-    enlight_detector_dbg("num_grids:        %8d %8d %8d %8d %8d %8d\n",
-        num_grids[0], num_grids[1],
-        num_grids[2], num_grids[3],
-        num_grids[4], num_grids[5]);
+    for (i = 0; i < num_output; i++) {
+        enlight_detector_dbg("loc_outputs:      %08x\n", loc_outputs[i]);
+        enlight_detector_dbg("conf_outputs:     %08x\n", conf_outputs[i]);
+        enlight_detector_dbg("num_grids:        %8d %8d\n",
+            num_grids[2 * i], num_grids[(2 * i) + 1]);
+    }
+
     enlight_detector_dbg("num_anchor:       %8d\n", num_anchor);
-    enlight_detector_dbg("num_class:        %8d\n", num_class);
+    enlight_detector_dbg("num_cls:          %8d\n", num_cls);
     enlight_detector_dbg("th_conf:          %8d/1000\n", (int)(th_conf * 1000));
 
-    box_data_len = coord_len + obj_len + num_class;
+    box_data_len = coord_len + obj_len + num_cls;
+
+    if (out_tensor_divided)
+        box_data_len = obj_len + num_cls;
 
 #ifdef GET_CANDIDAE_DBG
     for(i = 0; i < num_output; i++) {
@@ -289,6 +326,13 @@ static void get_candidate(
 
     for(output_idx = 0; output_idx < num_output; output_idx++) {
         uint32_t *sig_tbl;
+        int sig_scl;
+
+        if (sigmoid_applied)
+            sig_scl = 64;
+        else
+            sig_scl = 256;
+
         int *cand_buf;
         int grid_h, grid_w, gi, gj, k;
         cand_cnt = 0;
@@ -296,7 +340,14 @@ static void get_candidate(
         sig_tbl = sig_tbls[output_idx];
         cand_buf = cand_bufs[output_idx];
 
-        act_tensor_t* _output = outputs[output_idx];
+        conf_output_idx = output_idx;
+
+        enlight_act_tensor_t* _output;
+
+        if (out_tensor_divided) 
+            _output = conf_outputs[conf_output_idx];
+        else
+            _output = loc_outputs[conf_output_idx];
 
         grid_h = num_grids[2 * output_idx];
         grid_w = num_grids[(2 * output_idx) + 1];
@@ -304,32 +355,29 @@ static void get_candidate(
         for (gi = 0; gi < grid_h; gi++) {
             for (gj = 0; gj < grid_w; gj++) {
                 for (k = 0; k < num_anchor; k++) {
-                    const int sig_scl = 256;
-                    int c_off = (box_data_len * k) + coord_len;
+                    uint32_t obj;
                     int x_off = gj;
                     int y_off = gi;
+                    int c_off;
+                    int8_t src;
 
-                    int8_t src = enlight_get_tensor_qdata_by_index(_output, y_off, x_off, c_off);
+                    if (out_tensor_divided)
+                        c_off = box_data_len * k;
+                    else
+                        c_off = (box_data_len * k) + coord_len;
 
-                    uint32_t obj = sig_tbl[src];
+                    src = enlight_get_tensor_qdata_by_off(_output, y_off, x_off, c_off);
 
-                    //if(k==0){
-                    //    enlight_detector_dbg("\n src[%3d %3d %3d]: 0x%02x %8d",
-                    //        y_off, x_off, c_off, (uint8_t)src, src);
-                    //}
-                    //else {
-                    //    enlight_detector_dbg("    0x%02x %8d", (uint8_t)src, src);
-                    //}
+                    if (sigmoid_applied)
+                        obj = src;
+                    else
+                        obj = sig_tbl[src];
 
-                    if ((obj * 1024 / sig_scl) >= ((int)(th_conf * 1024))) {
+                    if ((obj * 1024 / sig_scl) >= ((uint32_t)(th_conf * 1024))) {
 
                         enlight_detector_dbg("\n src[%3d %3d %3d]: 0x%02x %8d\n",
                             y_off, x_off, c_off, (uint8_t)src, src);
 
-                        if ((cand_cnt + 1) > MAX_CANDIDATE_BOX) {
-                            enlight_detector_err("candidate box count overflow %d\n", cand_cnt);
-                            break;
-                        }
                         cand_buf[cand_cnt++] = num_anchor * ((grid_w * gi) + gj) + k;
 
                         enlight_detector_dbg("src: 0x%02x obj: 0x%02x th_conf: %8d/1000\n",
@@ -350,15 +398,18 @@ static void get_candidate(
 }
 
 static void decompose_output(
-    act_tensor_t**  outputs,
+    enlight_act_tensor_t**  loc_outputs,
+    enlight_act_tensor_t**  conf_outputs,
     uint8_t**       def_box_addr,
     uint32_t**      sig_tbl_addr,
     int             num_anchor,
-    int             num_class,
+    int             num_cls,
     int             num_output,
     int*            num_grids,
     int**           cand_buf_addr,
     int*            cand_nums,
+    int             out_tensor_divided,
+    int             sigmoid_applied,
     tensor_t*       loc,
     tensor_t*       conf,
     tensor_t*       prior,
@@ -370,9 +421,7 @@ static void decompose_output(
 
     //  ouput tensor shape
     //      output[h * w][box_data_size * 5 + 0's padding] = ouput[13 * 13][128]
-    const int word = 32;
     const int coordinate_len = 4; //xywh
-    const int ch_box_num = num_anchor;
     const int obj_len = 1;
 
     // select default box, which conf > threshould_conf
@@ -402,10 +451,14 @@ static void decompose_output(
         enlight_detector_dbg("\n");
     }
 
-    // copy loc, obj, class conf
-    int box_len = coordinate_len + obj_len + num_class;
-    int ch = ch_box_num * box_len;
-    int aligned_ch = (ch + (word - 1)) & ~ (word - 1);
+    // copy loc, obj, cls conf
+    int loc_box_len = coordinate_len + obj_len + num_cls;
+    int conf_box_len = coordinate_len + obj_len + num_cls;
+
+    if (out_tensor_divided) {
+        loc_box_len = coordinate_len;
+        conf_box_len = obj_len + num_cls;
+    }
 
     for(i = 0 ; i < num_output; i++) {
 
@@ -418,6 +471,18 @@ static void decompose_output(
 
         uint32_t* sig_tbl = sig_tbl_addr[i];
 
+        enlight_act_tensor_t* loc_output;
+        enlight_act_tensor_t* conf_output;
+
+        if (out_tensor_divided) {
+            conf_output = conf_outputs[i];
+            loc_output = loc_outputs[i];
+        }
+        else {
+            loc_output = loc_outputs[i];
+            conf_output = loc_outputs[i];
+        }
+
         for(j = 0; j < cand_num; j++) {
             int grid_idx, box_idx;
 
@@ -426,11 +491,11 @@ static void decompose_output(
 
             // local
             for(k = 0; k < coordinate_len; k++) {
-                int y_off = grid_idx / num_grids[2 * i];
-                int x_off = grid_idx % num_grids[2 * i];
-                int c_off = box_len * box_idx + k;
+                int y_off = grid_idx / num_grids[2 * i + 1];
+                int x_off = grid_idx % num_grids[2 * i + 1];
+                int c_off = loc_box_len * box_idx + k;
 
-                int8_t val = enlight_get_tensor_qdata_by_index(outputs[i],
+                int8_t val = enlight_get_tensor_qdata_by_off(loc_output,
                                 y_off, x_off, c_off);
                 *coor_dst++ = val;
 
@@ -444,14 +509,17 @@ static void decompose_output(
 
             // objectness
             for(k = 0; k < 1; k++) {
-                int y_off = grid_idx / num_grids[2 * i];
-                int x_off = grid_idx % num_grids[2 * i];
-                int c_off = box_len * box_idx + coordinate_len + k;
+                int y_off = grid_idx / num_grids[2 * i + 1];
+                int x_off = grid_idx % num_grids[2 * i + 1];
+                int c_off = conf_box_len * box_idx + coordinate_len + k;
+                if (out_tensor_divided)
+                    c_off = conf_box_len * box_idx + k;
 
-                uint32_t val = enlight_get_tensor_qdata_by_index(outputs[i],
+                uint32_t val = enlight_get_tensor_qdata_by_off(conf_output,
                                 y_off, x_off, c_off);
 
-                val = sig_tbl[val];
+                if (!sigmoid_applied)
+                    val = sig_tbl[val];
 
                 *obj_dst++ = val;
 
@@ -459,13 +527,15 @@ static void decompose_output(
             }
             enlight_detector_dbg("\n");
 
-            //class confidence
-            for(k = 0; k < num_class; k++) {
-                int y_off = grid_idx / num_grids[2 * i];
-                int x_off = grid_idx % num_grids[2 * i];
-                int c_off = box_len * box_idx + coordinate_len + 1 + k;
+            //cls confidence
+            for(k = 0; k < num_cls; k++) {
+                int y_off = grid_idx / num_grids[2 * i + 1];
+                int x_off = grid_idx % num_grids[2 * i + 1];
+                int c_off = conf_box_len * box_idx + coordinate_len + 1 + k;
+                if (out_tensor_divided)
+                    c_off = conf_box_len * box_idx + 1 + k;
 
-                int8_t val = enlight_get_tensor_qdata_by_index(outputs[i],
+                int8_t val = enlight_get_tensor_qdata_by_off(conf_output,
                                 y_off, x_off, c_off);
                 *conf_dst++ = val;
 
@@ -498,28 +568,34 @@ void yolo_init()
 }
 
 int yolo_detect_object(
-    int             softmax_use,       /**< softmax in yolo2            */
-    int             num_output,        /**< output loc tensor number    */
-    act_tensor_t**  outputs,           /**< output conf tensor number   */
-    uint8_t*        def_box_addr,      /**< default box base addresses  */
-    float           def_box_scl,       /**< default box scale           */
-    uint32_t*       exp_tbl_base,      /**< output exp(x) tables        */
-    uint32_t*       sig_tbl_base,      /**< output sigmoid(x) tables    */
-    int             num_class,         /**< class num                   */
-    int*            num_grids,         /**< grids                       */
-    int             num_anchor,        /**< anchor num, #box per a grid */
-    int*            img_sizes,         /**< input image H, W            */
-    float           th_conf,           /**< confidence threshold        */
-    float           th_iou,            /**< IOU threshold               */
-    objs_t*         detected_objs      /**< return objects buf base     */
+    int             softmax_use,        /**< softmax in yolo2            */
+    int             sigmoid_applied,    /**< sigmoid applied to outputs  */
+    int             num_loc,            /**< output loc tensor number    */
+    int             num_conf,           /**< output conf tensor number   */
+    enlight_act_tensor_t**  
+                    loc_outputs,        /**< output loc tensor number    */
+    enlight_act_tensor_t**
+                    conf_outputs,       /**< output conf tensor number   */
+    uint8_t*        def_box_addr,       /**< default box base addresses  */
+    float           def_box_scl,        /**< default box scale           */
+    uint32_t*       exp_tbl_base,       /**< output exp(x) tables        */
+    uint32_t*       sig_tbl_base,       /**< output sigmoid(x) tables    */
+    int             num_cls,            /**< cls num                     */
+    int*            num_grids,          /**< grids                       */
+    int             num_anchor,         /**< anchor num, #box per a grid */
+    int*            img_sizes,          /**< input image C, H, W         */
+    float           th_conf,            /**< confidence threshold        */
+    float           th_iou,             /**< IOU threshold               */
+    enlight_objs_t* detected_objs       /**< return objects buf base     */
     )
 {
     enlight_detector_dbg_fin();
 
     enlight_detector_dbg("softmax_use:  %8d\n", softmax_use);
     enlight_detector_dbg("def_box_scl:  %8d / 1000\n", (int)(1000 * def_box_scl));
-    enlight_detector_dbg("num_output:   %8d\n", num_output);
-    enlight_detector_dbg("num_class:    %8d\n", num_class);
+    enlight_detector_dbg("num_output:      %8d\n", num_loc);
+    enlight_detector_dbg("num_conf:     %8d\n", num_conf);
+    enlight_detector_dbg("num_cls:      %8d\n", num_cls);
     enlight_detector_dbg("num_grid:     %8d,%8d,%8d,%8d,%8d,%8d\n",
         num_grids[0], num_grids[1],
         num_grids[2], num_grids[3],
@@ -544,11 +620,21 @@ int yolo_detect_object(
     int* cand_buf;
     int max_cand_num;
 
-    uint32_t *sig_tbls_addr[3];
-    uint32_t *exp_tbls_addr[3];
+    uint32_t *loc_sig_tbls_addr[3];
+    uint32_t *conf_sig_tbls_addr[3];
+    uint32_t *loc_exp_tbls_addr[3];
+    uint32_t *conf_exp_tbls_addr[3];
     uint8_t *def_boxs_addr[3];
 
     const int len_loc = 4;
+
+    int out_tensor_divided;
+    int num_output = num_loc;
+
+    if (num_loc == num_conf)
+        out_tensor_divided = 1;
+    else
+        out_tensor_divided = 0;
 
 #ifdef GDB_FW_DEBUG
         gdb_fw_objects.cnt = 0;
@@ -562,7 +648,7 @@ int yolo_detect_object(
     cand_buf = (int*)enlight_malloc(max_cand_num);
    
     enlight_detector_dbg("max_cand_num buf size %d\n", max_cand_num);
-    
+
     cand_size = 0;
     for(i = 0; i < num_output; i++) {
         cand_bufs_addr[i] = &cand_buf[cand_size];
@@ -582,29 +668,60 @@ int yolo_detect_object(
 
     enlight_detector_dbg("sig_tables base: %08x\n", sig_tbl_base);
     enlight_detector_dbg("exp_tables base: %08x\n", exp_tbl_base);
+
+    
     for(i = 0; i < num_output; i++) {
-        sig_tbls_addr[i] = &sig_tbl_base[i * 256 + 128];
-        exp_tbls_addr[i] = &exp_tbl_base[i * 256 + 128];
-        enlight_detector_dbg("sig_tables[%d] addr: %08x\n", i, sig_tbls_addr[i]);
-        enlight_detector_dbg("exp_tables[%d] addr: %08x\n", i, exp_tbls_addr[i]);
+        conf_sig_tbls_addr[i] = &sig_tbl_base[i * 256 + 128];
+        loc_sig_tbls_addr[i] = &sig_tbl_base[i * 256 + 128];
+        conf_exp_tbls_addr[i] = &exp_tbl_base[i * 256 + 128];
+        loc_exp_tbls_addr[i] = &exp_tbl_base[i * 256 + 128];
+
+        if (out_tensor_divided) {
+            conf_sig_tbls_addr[i] = &sig_tbl_base[(2*i+0) * 256 + 128];
+            loc_sig_tbls_addr[i] = &sig_tbl_base[(2*i+1) * 256 + 128];
+            conf_exp_tbls_addr[i] = &exp_tbl_base[(2*i+0) * 256 + 128];
+            loc_exp_tbls_addr[i] = &exp_tbl_base[(2*i+1) * 256 + 128];
+        }
+
+        enlight_detector_dbg("loc_sig_tables[%d] addr: %08x\n", i, loc_sig_tbls_addr[i]);
+        enlight_detector_dbg("loc_exp_tables[%d] addr: %08x\n", i, loc_exp_tbls_addr[i]);
+        enlight_detector_dbg("con_sig_tables[%d] addr: %08x\n", i, conf_sig_tbls_addr[i]);
+        enlight_detector_dbg("con_exp_tables[%d] addr: %08x\n", i, conf_exp_tbls_addr[i]);
     }
 
-    get_candidate(outputs, cand_bufs_addr,
-                  cand_nums, sig_tbls_addr,
-                  num_output, num_grids,
-                  num_anchor, num_class,
-                  th_conf);
-    
+
+    get_candidate(
+        loc_outputs,
+        conf_outputs,
+        cand_bufs_addr,
+        cand_nums,
+        conf_sig_tbls_addr,
+        num_output, num_grids,
+        num_anchor, num_cls,
+        th_conf,
+        out_tensor_divided,
+        sigmoid_applied);
+
     void* output_work_buf_base[3];
 
     for(i = 0 ; i < num_output; i++) {
         int cand_num = cand_nums[i];
-        float output_scl = enlight_get_tensor_scale(outputs[i]);
+        float conf_output_scl;
+        float loc_output_scl;
+
+        if (out_tensor_divided) {
+            conf_output_scl = enlight_get_tensor_scale(conf_outputs[i]);
+            loc_output_scl = enlight_get_tensor_scale(loc_outputs[i]);
+        }
+        else {
+            conf_output_scl = enlight_get_tensor_scale(loc_outputs[i]);
+            loc_output_scl = conf_output_scl; 
+        }
 
         int obj_len = sizeof(uint32_t) * cand_num;
         int pri_len = sizeof(uint32_t) * cand_num * 4;
-        int loc_len = sizeof(int8_t)  * cand_num * 4;
-        int con_len = sizeof(int8_t)  * cand_num * num_class;
+        int loc_len = sizeof(int8_t) * cand_num * 4;
+        int con_len = sizeof(int8_t) * cand_num * num_cls;
 
         output_work_buf_base[i] = enlight_malloc(obj_len + pri_len + loc_len + con_len);
 
@@ -615,6 +732,8 @@ int yolo_detect_object(
 
         obj[i].buf      = obj_buf;
         obj[i].scl      = 256*1024; //FIXME.
+        if (sigmoid_applied)
+            obj[i].scl  = conf_output_scl*1024; //FIXME.
         obj[i].dtype    = ENLIGHT_DTYPE_UINT32;
         obj[i].num_ele  = 1 * cand_num;
         obj[i].num_dim  = 2;
@@ -634,37 +753,38 @@ int yolo_detect_object(
         pri[i].sig_tbl  = NULL;
 
         loc[i].buf      = loc_buf;
-        loc[i].scl      = output_scl;
+        loc[i].scl      = loc_output_scl;
         loc[i].dtype    = ENLIGHT_DTYPE_INT8;
         loc[i].num_ele  = cand_num * 4;
         loc[i].num_dim  = 3;
         loc[i].dims[0]  = 1;
         loc[i].dims[1]  = cand_num;
         loc[i].dims[2]  = 4;
-        loc[i].exp_tbl  = exp_tbls_addr[i];
-        loc[i].sig_tbl  = sig_tbls_addr[i];
+        loc[i].exp_tbl  = loc_exp_tbls_addr[i];
+        loc[i].sig_tbl  = loc_sig_tbls_addr[i];
 
         scr[i].buf      = con_buf;
-        scr[i].scl      = output_scl;
+        scr[i].scl      = conf_output_scl;
         scr[i].dtype    = ENLIGHT_DTYPE_INT8;
-        scr[i].num_ele  = cand_num * num_class;
+        scr[i].num_ele  = cand_num * num_cls;
         scr[i].num_dim  = 3;
         scr[i].dims[0]  = 1;
         scr[i].dims[1]  = cand_num;
-        scr[i].dims[2]  = num_class;
-        scr[i].exp_tbl  = exp_tbls_addr[i];
-        scr[i].sig_tbl  = sig_tbls_addr[i];
+        scr[i].dims[2]  = num_cls;
+        scr[i].exp_tbl  = conf_exp_tbls_addr[i];
+        scr[i].sig_tbl  = conf_sig_tbls_addr[i];
     }
 
-    decompose_output(outputs,
+    decompose_output(loc_outputs, conf_outputs,
                      def_boxs_addr,
-                     sig_tbls_addr,
-                     num_anchor, num_class, num_output, num_grids,
-                     cand_bufs_addr, cand_nums,
+                     conf_sig_tbls_addr,
+                     num_anchor, num_cls, num_output, num_grids,
+                     cand_bufs_addr, cand_nums, out_tensor_divided, sigmoid_applied,
                      loc, scr, pri, obj);
 
     enlight_free(cand_buf);
 
+    /*
     for(i = 0 ; i < num_output; i++) {
         enlight_detector_dbg(" pri.buf      %08x\n",     pri[i].buf);
         enlight_detector_dbg(" pri.scl      %08x\n",     pri[i].scl);
@@ -692,6 +812,7 @@ int yolo_detect_object(
         enlight_detector_dbg(" scr.dims[1]  %08x\n",     scr[i].dims[1]);
         enlight_detector_dbg(" scr.dims[2]  %08x\n",     scr[i].dims[2]);
     }
+    */
 
 #ifdef POST_PROCESS_REPORT_CYCLE
 #ifdef __i386__
@@ -702,7 +823,7 @@ int yolo_detect_object(
 #endif //POST_PROCESS_REPORT_CYCLE
 
     detection_t* r1 = yolo_post_process(scr, loc, pri, obj,
-        th_conf, th_iou, num_grids, num_output, softmax_use);
+        th_conf, th_iou, num_grids, num_output, softmax_use, sigmoid_applied);
 
 #ifdef POST_PROCESS_REPORT_CYCLE
 #ifdef __i386__
@@ -715,39 +836,40 @@ int yolo_detect_object(
 
     enlight_detector_dbg("%d object is detected\n", r1->n);
 
+    detected_objs->cnt = r1->n;
+
     for (i = 0 ; i < r1->n ; i++) {
         box_t* b = r1->box + i;
 
-        enlight_detector_dbg("x_min: %d, x_max: %d, y_min: %d, y_max: %d, score: %d, class: %d\n",
-                img_sizes[1]*b->x_min/256,
-                img_sizes[1]*b->x_max/256,
-                img_sizes[0]*b->y_min/256,
-                img_sizes[0]*b->y_max/256,
+        enlight_detector_dbg("x_min: %d, x_max: %d, y_min: %d, y_max: %d, score: %d, cls: %d\n",
+                img_sizes[2]*b->x_min/256,
+                img_sizes[2]*b->x_max/256,
+                img_sizes[1]*b->y_min/256,
+                img_sizes[1]*b->y_max/256,
                 r1->score[i]*100/(1<<16),
-                r1->class[i]);
+                r1->cls[i]);
 
 #ifdef GDB_FW_DEBUG
-        obj_t *dbg_obj = &gdb_fw_objects.obj[i];
-        dbg_obj->x_min = img_sizes[1]*b->x_min/256;
-        dbg_obj->x_max = img_sizes[1]*b->x_max/256;
-        dbg_obj->y_min = img_sizes[0]*b->y_min/256;
-        dbg_obj->y_max = img_sizes[0]*b->y_max/256;
+        enlight_obj_t *dbg_obj = &gdb_fw_objects.obj[i];
+        dbg_obj->x_min = img_sizes[2]*b->x_min/256;
+        dbg_obj->x_max = img_sizes[2]*b->x_max/256;
+        dbg_obj->y_min = img_sizes[1]*b->y_min/256;
+        dbg_obj->y_max = img_sizes[1]*b->y_max/256;
         dbg_obj->score = r1->score[i]*100/(1<<16);
-        dbg_obj->class = r1->class[i] + 1; // + 1 for background
-        dbg_obj->img_w = img_sizes[1];
-        dbg_obj->img_h = img_sizes[0];
+        dbg_obj->cls = r1->cls[i] + 1; // + 1 for background
+        dbg_obj->img_w = img_sizes[2];
+        dbg_obj->img_h = img_sizes[1];
         gdb_fw_objects.cnt = r1->n;
 #endif
-        obj_t *ret_obj = &detected_objs->obj[i];
-        ret_obj->x_min = img_sizes[1]*b->x_min/256;
-        ret_obj->x_max = img_sizes[1]*b->x_max/256;
-        ret_obj->y_min = img_sizes[0]*b->y_min/256;
-        ret_obj->y_max = img_sizes[0]*b->y_max/256;
+        enlight_obj_t *ret_obj = &detected_objs->obj[i];
+        ret_obj->x_min = img_sizes[2]*b->x_min/256;
+        ret_obj->x_max = img_sizes[2]*b->x_max/256;
+        ret_obj->y_min = img_sizes[1]*b->y_min/256;
+        ret_obj->y_max = img_sizes[1]*b->y_max/256;
         ret_obj->score = r1->score[i]*100/(1<<16);
-        ret_obj->class = r1->class[i] + 1; // + 1 for background
-        ret_obj->img_w = img_sizes[1];
-        ret_obj->img_h = img_sizes[0];
-        detected_objs->cnt = r1->n;
+        ret_obj->cls = r1->cls[i] + 1; // + 1 for background
+        ret_obj->img_w = img_sizes[2];
+        ret_obj->img_h = img_sizes[1];
     }
 
     enlight_free(r1);

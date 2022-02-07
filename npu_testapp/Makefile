@@ -11,7 +11,7 @@ LIB = ./
 STATIC_DIR      :=
 
 CFLAGS	:= -Wall -D__NO_INLINE__  -std=gnu99
-CFLAGS	+= -lpthread 
+CFLAGS	+= -lpthread  -pthread
 CFLAGS	+= -O2 -g 
 CFLAGS	+= -D__i386__ 
 CFLAGS	+= -pg 
@@ -23,11 +23,14 @@ CFLAGS	+= -fPIC -no-pie
 CFLAGS  += -Ienlight -Inetwork
 
 OBJS = xdma/xdma.o
-OBJS += network/post_process.o
+#OBJS += network/post_process.o
 OBJS += detector/detector.o 
 OBJS += detector/yolo_detector.o
+OBJS += detector/ssd_detector.o
+OBJS += detector/classifier.o
 OBJS += enlight/enlight_network.o
 OBJS += npu_api.o
+OBJS += multi_network.o
 OBJS += testapp.o
 
 TARGET = testapp
