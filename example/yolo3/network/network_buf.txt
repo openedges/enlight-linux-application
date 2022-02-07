@@ -1,5 +1,0 @@
-CODE      16340
-WGHT    3ad3080
-WORK    1a48500
-IACT      7ec00
-OACT      532e0
